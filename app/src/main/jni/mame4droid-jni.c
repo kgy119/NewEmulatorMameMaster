@@ -37,7 +37,7 @@
 
 #include <pthread.h>
 
-#include "com_seleuco_mame4droid_Emulator.h"
+#include "com_ingcorp_webhard_Emulator.h"
 
 #define DEBUG 1
 
@@ -420,11 +420,11 @@ int JNI_OnLoad(JavaVM* vm, void* reserved)
         return -1;
     }
 
-    cEmulator = (*env)->FindClass (env, "com/seleuco/mame4droid/Emulator");
+    cEmulator = (*env)->FindClass (env, "com/ingcorp/webhard/Emulator");
 
     if(cEmulator==NULL)
     {
-        __android_log_print(ANDROID_LOG_ERROR, "mame4droid-jni", "Failed to find class com.seleuco.mame4droid.Emulator");
+        __android_log_print(ANDROID_LOG_ERROR, "mame4droid-jni", "Failed to find class com.ingcorp.webhard.Emulator");
         return -1;
     }
 
@@ -521,7 +521,7 @@ void* app_Thread_Start(void* args)
     return NULL;
 }
 
-JNIEXPORT void JNICALL Java_com_seleuco_mame4droid_Emulator_init
+JNIEXPORT void JNICALL Java_com_ingcorp_webhard_Emulator_init
   (JNIEnv *env, jclass c,  jstring s1, jstring s2,jint nativeWidth, jint nativeHeight)
 {
     __android_log_print(ANDROID_LOG_INFO, "mame4droid-jni", "init");
@@ -576,7 +576,7 @@ JNIEXPORT void JNICALL Java_com_seleuco_mame4droid_Emulator_init
     */
 }
 
-JNIEXPORT void JNICALL Java_com_seleuco_mame4droid_Emulator_setDigitalData
+JNIEXPORT void JNICALL Java_com_ingcorp_webhard_Emulator_setDigitalData
   (JNIEnv *env, jclass c, jint i,  jlong jl)
 {
     //long 	jlong 	signed 64 bits ??? valdria con un jint
@@ -590,7 +590,7 @@ JNIEXPORT void JNICALL Java_com_seleuco_mame4droid_Emulator_setDigitalData
       __android_log_print(ANDROID_LOG_WARN, "mame4droid-jni", "error no setDigitalData!");
 }
 
-JNIEXPORT void JNICALL Java_com_seleuco_mame4droid_Emulator_setAnalogData
+JNIEXPORT void JNICALL Java_com_ingcorp_webhard_Emulator_setAnalogData
   (JNIEnv *env, jclass c, jint i, jfloat v1, jfloat v2)
 {
     if(setAnalogData!=NULL)
@@ -599,7 +599,7 @@ JNIEXPORT void JNICALL Java_com_seleuco_mame4droid_Emulator_setAnalogData
       __android_log_print(ANDROID_LOG_WARN, "mame4droid-jni", "error no setAnalogData!");
 }
 
-JNIEXPORT jint JNICALL Java_com_seleuco_mame4droid_Emulator_getValue
+JNIEXPORT jint JNICALL Java_com_ingcorp_webhard_Emulator_getValue
   (JNIEnv *env, jclass c, jint key, jint i)
 {
 #ifdef DEBUG
@@ -614,7 +614,7 @@ JNIEXPORT jint JNICALL Java_com_seleuco_mame4droid_Emulator_getValue
       }
 }
 
-JNIEXPORT void JNICALL Java_com_seleuco_mame4droid_Emulator_setValue
+JNIEXPORT void JNICALL Java_com_ingcorp_webhard_Emulator_setValue
   (JNIEnv *env, jclass c, jint key, jint i, jint value)
 {
 #ifdef DEBUG
@@ -626,7 +626,7 @@ JNIEXPORT void JNICALL Java_com_seleuco_mame4droid_Emulator_setValue
       __android_log_print(ANDROID_LOG_WARN, "mame4droid-jni", "error no setMyValue!");
 }
 
-JNIEXPORT jstring JNICALL Java_com_seleuco_mame4droid_Emulator_getValueStr
+JNIEXPORT jstring JNICALL Java_com_ingcorp_webhard_Emulator_getValueStr
   (JNIEnv *env, jclass c, jint key, jint i)
 {
 #ifdef DEBUG
@@ -644,7 +644,7 @@ JNIEXPORT jstring JNICALL Java_com_seleuco_mame4droid_Emulator_getValueStr
       }
 }
 
-JNIEXPORT void JNICALL Java_com_seleuco_mame4droid_Emulator_setValueStr
+JNIEXPORT void JNICALL Java_com_ingcorp_webhard_Emulator_setValueStr
   (JNIEnv *env, jclass c, jint key, jint i, jstring s1)
 {
     if(setMyValueStr!=NULL)
@@ -660,7 +660,7 @@ JNIEXPORT void JNICALL Java_com_seleuco_mame4droid_Emulator_setValueStr
       __android_log_print(ANDROID_LOG_WARN, "mame4droid-jni", "error no setMyValueStr!");
 }
 
-JNIEXPORT void JNICALL Java_com_seleuco_mame4droid_Emulator_runT
+JNIEXPORT void JNICALL Java_com_ingcorp_webhard_Emulator_runT
   (JNIEnv *env, jclass c){
 #ifdef DEBUG
     __android_log_print(ANDROID_LOG_DEBUG, "mame4droid-jni", "runThread");
@@ -671,7 +671,7 @@ JNIEXPORT void JNICALL Java_com_seleuco_mame4droid_Emulator_runT
        __android_log_print(ANDROID_LOG_WARN, "mame4droid-jni", "error no android main!");
 }
 
-JNIEXPORT int JNICALL Java_com_seleuco_mame4droid_Emulator_setKeyData
+JNIEXPORT int JNICALL Java_com_ingcorp_webhard_Emulator_setKeyData
         (JNIEnv *env, jclass c, jint keyCode, jint keyAction, jchar keyChar){
 #ifdef DEBUG
      //__android_log_print(ANDROID_LOG_DEBUG, "mame4droid-jni", "setKeyData %d %d %c",keyCode, keyAction, keyChar);
@@ -683,7 +683,7 @@ JNIEXPORT int JNICALL Java_com_seleuco_mame4droid_Emulator_setKeyData
     return 0;
 }
 
-JNIEXPORT jint JNICALL Java_com_seleuco_mame4droid_Emulator_setMouseData
+JNIEXPORT jint JNICALL Java_com_ingcorp_webhard_Emulator_setMouseData
         (JNIEnv *env, jclass c, jint i, jint mouseAction, jint button, jfloat cx, jfloat cy){
 #ifdef DEBUG
     //__android_log_print(ANDROID_LOG_DEBUG, "mame4droid-jni", "setMouseData %d %d %d",mouseAction, cx, cy);
@@ -695,7 +695,7 @@ JNIEXPORT jint JNICALL Java_com_seleuco_mame4droid_Emulator_setMouseData
     return 0;
 }
 
-JNIEXPORT jint JNICALL Java_com_seleuco_mame4droid_Emulator_setTouchData
+JNIEXPORT jint JNICALL Java_com_ingcorp_webhard_Emulator_setTouchData
         (JNIEnv *env, jclass c, jint i, jint touchAction, jfloat cx, jfloat cy){
 #ifdef DEBUG
     __android_log_print(ANDROID_LOG_DEBUG, "mame4droid-jni", "setTouchData %d %d %d",touchAction, (int)cx, (int)cy);

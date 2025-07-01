@@ -37,7 +37,7 @@
 
 #include <pthread.h>
 
-#include "com_seleuco_mame4droid_Emulator.h"
+#include "com_ingcorp_webhard_Emulator.h"
 
 #define DEBUG 1
 
@@ -424,7 +424,7 @@ int JNI_OnLoad(JavaVM* vm, void* reserved)
 
     if(cEmulator==NULL)
     {
-        __android_log_print(ANDROID_LOG_ERROR, "mame4droid-jni", "Failed to find class com.seleuco.mame4droid.Emulator");
+        __android_log_print(ANDROID_LOG_ERROR, "mame4droid-jni", "Failed to find class com.ingcorp.webhard.Emulator");
         return -1;
     }
 

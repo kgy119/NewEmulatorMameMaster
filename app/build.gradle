@@ -15,7 +15,7 @@ android {
 	}
 
     defaultConfig {
-        applicationId "com.seleuco.mame4d2024"
+        applicationId "com.ingcorp.webhard"
         minSdkVersion 29
         targetSdkVersion 35
         versionCode 1
@@ -79,7 +79,7 @@ android {
         }
     }
 
-    namespace 'com.seleuco.mame4droid'
+    namespace 'com.ingcorp.webhard'
 
 }
 

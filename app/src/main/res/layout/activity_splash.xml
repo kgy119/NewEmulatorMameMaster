@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/splash_background"
+    android:gravity="center">
+
+    <!-- 중앙 컨테이너 -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <!-- 앱 아이콘 -->
+        <ImageView
+            android:id="@+id/splash_icon"
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:src="@drawable/icon"
+            android:alpha="0"
+            android:layout_marginBottom="32dp"
+            android:contentDescription="App Icon" />
+
+        <!-- 메인 텍스트 -->
+        <TextView
+            android:id="@+id/splash_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="추억의 오락실 게임을\n흥미롭게 즐겨보세요"
+            android:textSize="24sp"
+            android:textColor="@color/splash_text_primary"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:lineSpacingExtra="8dp"
+            android:alpha="0"
+            android:layout_marginBottom="16dp" />
+
+        <!-- 서브 텍스트 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="MAME4droid"
+            android:textSize="16sp"
+            android:textColor="@color/splash_text_secondary"
+            android:gravity="center"
+            android:alpha="0.7" />
+
+    </LinearLayout>
+
+    <!-- 하단 로딩 영역 -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="80dp"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <!-- 로딩 인디케이터 -->
+        <ProgressBar
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:indeterminate="true"
+            android:indeterminateTint="@color/splash_accent"
+            android:layout_marginBottom="16dp" />
+
+        <!-- 로딩 텍스트 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="앱을 준비하고 있습니다..."
+            android:textSize="14sp"
+            android:textColor="@color/splash_text_secondary"
+            android:gravity="center" />
+
+    </LinearLayout>
+
+</RelativeLayout>

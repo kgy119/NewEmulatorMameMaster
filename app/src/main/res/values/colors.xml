@@ -23,5 +23,26 @@
  <color name="blue">#0000FF</color>
  <color name="navy">#000080</color>
  <color name="black">#000000</color>
-  
+
+ <!-- 스플래시 다크모드 색상 -->
+ <color name="splash_background">#1a1a1a</color>
+ <color name="splash_text_primary">#ffffff</color>
+ <color name="splash_text_secondary">#b3b3b3</color>
+ <color name="splash_accent">#ff6b35</color>
+ <color name="splash_card_background">#2d2d2d</color>
+
+ <!-- 게임 관련 색상 -->
+ <color name="game_primary">#ff6b35</color>
+ <color name="game_secondary">#ffab00</color>
+ <color name="game_success">#4caf50</color>
+ <color name="game_warning">#ff9800</color>
+ <color name="game_error">#f44336</color>
+
+ <!-- 다크 테마 기본 색상 -->
+ <color name="dark_background">#121212</color>
+ <color name="dark_surface">#1e1e1e</color>
+ <color name="dark_text_primary">#ffffff</color>
+ <color name="dark_text_secondary">#b3b3b3</color>
+
+
 </resources>

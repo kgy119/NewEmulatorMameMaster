@@ -5,14 +5,14 @@ android {
 
     ndkVersion "21.3.6528147"
 
-	buildFeatures {
-		buildConfig = true
-	}
+    buildFeatures {
+        buildConfig = true
+    }
 
-	compileOptions {
-		sourceCompatibility = JavaVersion.VERSION_17
-		targetCompatibility = JavaVersion.VERSION_17
-	}
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
 
     defaultConfig {
         applicationId "com.ingcorp.webhard"
@@ -25,14 +25,14 @@ android {
             moduleName "mame4droid-jni"
             //noinspection ChromeOsAbiSupport
             abiFilters  "arm64-v8a"
-			//ndkPath "C:\\Android\\android-ndk-r27c"
-			ndkVersion "27.2.12479018"
+            //ndkPath "C:\\Android\\android-ndk-r27c"
+            ndkVersion "27.2.12479018"
         }
     }
 
-	base {
-		archivesName = "MAME4droid 2025-" + defaultConfig.versionName
-	}
+    base {
+        archivesName = "MAME4droid 2025-" + defaultConfig.versionName
+    }
 
     bundle {
         language {
@@ -50,7 +50,7 @@ android {
     }
 
     packagingOptions {
-		//doNotStrip "**/*.so" //CUIDADO QUITAR EN RELEASE. Lo he añadido al final con nueva sintaxis
+        //doNotStrip "**/*.so" //CUIDADO QUITAR EN RELEASE. Lo he añadido al final con nueva sintaxis
         jniLibs {
             useLegacyPackaging = true
         }
@@ -58,19 +58,19 @@ android {
 
     buildTypes {
         release {
-			//minifyEnabled true
-			minifyEnabled false
-			//shrinkResources true
+            //minifyEnabled true
+            minifyEnabled false
+            //shrinkResources true
 
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
-			signingConfig signingConfigs.debug
-		}
-		debug {
-			minifyEnabled false
-			debuggable true
-			jniDebuggable true
-			//renderscriptDebuggable true
-		}
+            signingConfig signingConfigs.debug
+        }
+        debug {
+            minifyEnabled false
+            debuggable true
+            jniDebuggable true
+            //renderscriptDebuggable true
+        }
     }
 
     externalNativeBuild {
@@ -84,13 +84,35 @@ android {
 }
 
 dependencies {
-	//implementation "androidx.annotation:annotation:1.7.0"
+    //implementation "androidx.annotation:annotation:1.7.0"
+
+    // 최신 네트워크 라이브러리 (Retrofit + OkHttp)
+    implementation 'com.squareup.retrofit2:retrofit:2.9.0'
+    implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    implementation 'com.squareup.okhttp3:logging-interceptor:4.12.0'
+
+    // GSON for JSON parsing
+    implementation 'com.google.code.gson:gson:2.10.1'
+
+    // Room Database (최신 Android 데이터베이스)
+    implementation 'androidx.room:room-runtime:2.6.1'
+    annotationProcessor 'androidx.room:room-compiler:2.6.1'
+
+    // AndroidX Core 라이브러리 (AppCompat 포함)
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'androidx.core:core:1.12.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'com.google.android.material:material:1.11.0'
+
+    // 비동기 처리를 위한 라이브러리 (선택사항)
+    // implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
 }
 
 androidComponents {
-	onVariants(selector().withBuildType("debug")) {
-		packaging.jniLibs.keepDebugSymbols.add("**/*.so")
-	}
+    onVariants(selector().withBuildType("debug")) {
+        packaging.jniLibs.keepDebugSymbols.add("**/*.so")
+    }
 
-	registerSourceType("../../../../src") // will cause src/main/foobar (and src/debug/foobar etc.) to appear as sources in Android Studi
+    registerSourceType("../../../../src") // will cause src/main/foobar (and src/debug/foobar etc.) to appear as sources in Android Studio
 }

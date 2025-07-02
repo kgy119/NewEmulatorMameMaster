@@ -7,71 +7,110 @@ public class VersionResponse {
     @SerializedName("root")
     private VersionRoot root;
 
-    public VersionRoot getRoot() { return root; }
-    public void setRoot(VersionRoot root) { this.root = root; }
+    public VersionRoot getRoot() {
+        return root;
+    }
+
+    public void setRoot(VersionRoot root) {
+        this.root = root;
+    }
 
     public static class VersionRoot {
-        @SerializedName("result_code")
-        private String resultCode;
-
         @SerializedName("isCheck")
-        private String isCheck;
-
-        @SerializedName("nowVersionCode")
-        private String nowVersionCode;
+        private boolean isCheck;
 
         @SerializedName("packageName")
         private String packageName;
 
+        @SerializedName("nowVersionCode")
+        private int nowVersionCode;
+
         @SerializedName("adBannerUse")
-        private String adBannerUse;
+        private boolean adBannerUse;
 
         @SerializedName("adFullCnt")
-        private String adFullCnt;
+        private int adFullCnt;
 
         @SerializedName("adFullCoinCnt")
-        private String adFullCoinCnt;
+        private int adFullCoinCnt;
 
         @SerializedName("gameListVersion")
-        private String gameListVersion;
+        private int gameListVersion;
 
         // Getters
-        public String getResultCode() { return resultCode; }
-        public String getIsCheck() { return isCheck; }
-        public String getNowVersionCode() { return nowVersionCode; }
-        public String getPackageName() { return packageName; }
-        public String getAdBannerUse() { return adBannerUse; }
-        public String getAdFullCnt() { return adFullCnt; }
-        public String getAdFullCoinCnt() { return adFullCoinCnt; }
-        public String getGameListVersion() { return gameListVersion; }
-
-        // 편의 메소드
-        public int getNowVersionCodeInt() {
-            try {
-                return Integer.parseInt(nowVersionCode);
-            } catch (NumberFormatException e) {
-                return 0;
-            }
+        public boolean isCheckEnabled() {
+            return isCheck;
         }
 
-        public boolean isCheckEnabled() {
-            return "Y".equals(isCheck);
+        public String getPackageName() {
+            return packageName;
+        }
+
+        public int getNowVersionCode() {
+            return nowVersionCode;
+        }
+
+        public int getNowVersionCodeInt() {
+            return nowVersionCode;
         }
 
         public boolean isAdBannerEnabled() {
-            return "Y".equals(adBannerUse);
+            return adBannerUse;
+        }
+
+        public int getAdFullCnt() {
+            return adFullCnt;
+        }
+
+        public int getAdFullCoinCnt() {
+            return adFullCoinCnt;
+        }
+
+
+        public int getGameListVersionInt() {
+            return gameListVersion;
+        }
+
+        // Setters
+        public void setIsCheck(boolean isCheck) {
+            this.isCheck = isCheck;
+        }
+
+        public void setPackageName(String packageName) {
+            this.packageName = packageName;
+        }
+
+        public void setNowVersionCode(int nowVersionCode) {
+            this.nowVersionCode = nowVersionCode;
+        }
+
+        public void setAdBannerUse(boolean adBannerUse) {
+            this.adBannerUse = adBannerUse;
+        }
+
+        public void setAdFullCnt(int adFullCnt) {
+            this.adFullCnt = adFullCnt;
+        }
+
+        public void setAdFullCoinCnt(int adFullCoinCnt) {
+            this.adFullCoinCnt = adFullCoinCnt;
+        }
+
+        public void setGameListVersion(int gameListVersion) {
+            this.gameListVersion = gameListVersion;
         }
 
         @Override
         public String toString() {
             return "VersionRoot{" +
-                    "resultCode='" + resultCode + '\'' +
-                    ", isCheck='" + isCheck + '\'' +
-                    ", nowVersionCode='" + nowVersionCode + '\'' +
+                    "isCheck=" + isCheck +
                     ", packageName='" + packageName + '\'' +
-                    ", gameListVersion='" + gameListVersion + '\'' +
+                    ", nowVersionCode=" + nowVersionCode +
+                    ", adBannerUse=" + adBannerUse +
+                    ", adFullCnt=" + adFullCnt +
+                    ", adFullCoinCnt=" + adFullCoinCnt +
+                    ", gameListVersion=" + gameListVersion +
                     '}';
         }
     }
 }
-

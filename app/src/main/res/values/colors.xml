@@ -23,20 +23,37 @@
  <color name="blue">#0000FF</color>
  <color name="navy">#000080</color>
  <color name="black">#000000</color>
-
- <!-- 스플래시 다크모드 색상 -->
+ <!-- 스플래시 다크모드 색상 - 그린 계열로 변경 -->
  <color name="splash_background">#1a1a1a</color>
  <color name="splash_text_primary">#ffffff</color>
  <color name="splash_text_secondary">#b3b3b3</color>
- <color name="splash_accent">#ff6b35</color>
+ <color name="splash_accent">#4caf50</color>
  <color name="splash_card_background">#2d2d2d</color>
 
- <!-- 게임 관련 색상 -->
- <color name="game_primary">#ff6b35</color>
- <color name="game_secondary">#ffab00</color>
- <color name="game_success">#4caf50</color>
+ <!-- 게임 관련 색상 - 그린 계열로 변경 -->
+ <color name="game_primary">#4caf50</color>
+ <color name="game_secondary">#66bb6a</color>
+ <color name="game_success">#81c784</color>
  <color name="game_warning">#ff9800</color>
  <color name="game_error">#f44336</color>
+
+ <!-- 추가 그린 계열 색상 (필요시 사용) -->
+ <color name="green_dark">#388e3c</color>
+ <color name="green_medium">#4caf50</color>
+ <color name="green_light">#81c784</color>
+ <color name="green_very_light">#c8e6c9</color>
+
+ <!-- 그린 계열 그라데이션 색상 -->
+ <color name="green_gradient_start">#4caf50</color>
+ <color name="green_gradient_end">#2e7d32</color>
+
+ <!-- 더 다양한 그린 톤 -->
+ <color name="emerald_primary">#00c853</color>
+ <color name="emerald_secondary">#69f0ae</color>
+ <color name="forest_primary">#2e7d32</color>
+ <color name="forest_secondary">#66bb6a</color>
+ <color name="mint_primary">#26a69a</color>
+ <color name="mint_secondary">#80cbc4</color>
 
  <!-- 다크 테마 기본 색상 -->
  <color name="dark_background">#121212</color>

@@ -77,17 +77,19 @@ public class NetworkManager {
             public void onResponse(Call<VersionResponse> call, Response<VersionResponse> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     VersionResponse versionResponse = response.body();
-                    if (versionResponse.getRoot() != null && "0000".equals(versionResponse.getRoot().getResultCode())) {
+
+                    // JSON: { "root": { "isCheck": true, ... } }
+                    // root만 존재하면 성공으로 간주
+                    if (versionResponse.getRoot() != null) {
                         Log.d(TAG, "Version info retrieved successfully: " + versionResponse.getRoot());
                         callback.onSuccess(versionResponse);
                     } else {
-                        String error = "Server returned error code: " +
-                                (versionResponse.getRoot() != null ? versionResponse.getRoot().getResultCode() : "unknown");
+                        String error = "Invalid response: root is null";
                         Log.e(TAG, error);
                         callback.onError(error);
                     }
                 } else {
-                    String error = "Server error: " + response.code() + " " + response.message();
+                    String error = "HTTP " + response.code() + ": " + response.message();
                     Log.e(TAG, error);
                     callback.onError(error);
                 }
@@ -113,17 +115,18 @@ public class NetworkManager {
             public void onResponse(Call<GameListResponse> call, Response<GameListResponse> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     GameListResponse gameListResponse = response.body();
-                    if (gameListResponse.getRoot() != null && "0000".equals(gameListResponse.getRoot().getResultCode())) {
-                        Log.d(TAG, "Game list retrieved successfully: " + gameListResponse.getRoot().getAllTotal() + " games");
+
+                    if (gameListResponse.getRoot() != null && gameListResponse.getRoot().getList() != null) {
+                        int gameCount = gameListResponse.getRoot().getList().size();
+                        Log.d(TAG, "Game list retrieved successfully: " + gameCount + " games");
                         callback.onSuccess(gameListResponse);
                     } else {
-                        String error = "Server returned error code: " +
-                                (gameListResponse.getRoot() != null ? gameListResponse.getRoot().getResultCode() : "unknown");
+                        String error = "Invalid response: root or list is null";
                         Log.e(TAG, error);
                         callback.onError(error);
                     }
                 } else {
-                    String error = "Server error: " + response.code() + " " + response.message();
+                    String error = "HTTP " + response.code() + ": " + response.message();
                     Log.e(TAG, error);
                     callback.onError(error);
                 }

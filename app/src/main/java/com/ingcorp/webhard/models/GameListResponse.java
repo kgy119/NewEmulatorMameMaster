@@ -2,6 +2,8 @@ package com.ingcorp.webhard.models;
 
 import com.google.gson.annotations.SerializedName;
 
+import java.util.List;
+
 public class GameListResponse {
 
     @SerializedName("root")

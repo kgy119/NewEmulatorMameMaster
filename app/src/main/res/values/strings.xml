@@ -3,7 +3,7 @@
     <string name="menu_options">Options</string>
     <string name="menu_quit_game">Exit Game</string>
     <string name="menu_quit">Exit App</string>
-    <string name="app_name">MAME4droid (Current)</string>
+    <string name="app_name">고전게임 마스터</string>
     <string name="don_t_bother">Don\'t ask again</string>
 	<string name="mame_version">0.277</string>
 </resources>

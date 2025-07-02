@@ -78,7 +78,6 @@ public class NetworkManager {
                 if (response.isSuccessful() && response.body() != null) {
                     VersionResponse versionResponse = response.body();
 
-                    // JSON: { "root": { "isCheck": true, ... } }
                     // root만 존재하면 성공으로 간주
                     if (versionResponse.getRoot() != null) {
                         Log.d(TAG, "Version info retrieved successfully: " + versionResponse.getRoot());

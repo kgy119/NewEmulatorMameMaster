@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:fitsSystemWindows="true"
+    android:background="@android:color/black"
     tools:context=".MainActivity">
 
     <!-- Top tab layout -->
@@ -16,7 +16,7 @@
         android:background="@color/tab_background"
         app:tabTextColor="@color/tab_unselected"
         app:tabSelectedTextColor="@color/tab_selected"
-        app:tabIndicatorColor="@color/game_primary"
+        app:tabIndicatorColor="@color/tab_selected"
         app:tabMode="scrollable"
         app:tabGravity="center" />
 

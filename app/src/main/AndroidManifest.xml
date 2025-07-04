@@ -1,91 +1,138 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
 	android:installLocation="preferExternal">
-
 	<!-- 기존 권한들 -->
-	<uses-permission android:name="android.permission.VIBRATE"/>
-	<uses-permission android:name="android.permission.INTERNET"/>
-
-	<!-- 네트워크 상태 확인 권한 추가 -->
-	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+	<uses-permission android:name="android.permission.VIBRATE" />
+	<uses-permission android:name="android.permission.INTERNET" /> <!-- 네트워크 상태 확인 권한 추가 -->
+	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
 	<supports-screens
+		android:anyDensity="true"
 		android:largeScreens="true"
 		android:normalScreens="true"
-		android:smallScreens="true"
-		android:anyDensity="true"
-		android:resizeable="true"/>
+		android:resizeable="true"
+		android:smallScreens="true" />
 
-	<uses-feature android:name="android.hardware.touchscreen" android:required="false"/>
-	<uses-feature android:name="android.hardware.gamepad" android:required="false" />
+	<uses-feature
+		android:name="android.hardware.touchscreen"
+		android:required="false" />
+	<uses-feature
+		android:name="android.hardware.gamepad"
+		android:required="false" />
 
-	<application android:icon="@mipmap/ic_launcher"
-		android:label="@string/app_name"
-		android:allowClearUserData="true"
-		android:hardwareAccelerated="true"
-		android:isGame="true"
-		android:banner="@drawable/banner"
-		android:requestLegacyExternalStorage="true"
-		android:maxSdkVersion="29"
-		android:usesCleartextTraffic="true"
+	<application
 		android:allowBackup="false"
-		android:hasFragileUserData="true">
+		android:allowClearUserData="true"
+		android:banner="@drawable/banner"
+		android:hardwareAccelerated="true"
+		android:hasFragileUserData="true"
+		android:icon="@mipmap/ic_launcher"
+		android:isGame="true"
+		android:label="@string/app_name"
+		android:maxSdkVersion="29"
+		android:requestLegacyExternalStorage="true"
+		android:usesCleartextTraffic="true"
+		android:theme="@style/AppTheme">
 
-		<!-- 스플래시 액티비티 - 메인 런처로 설정 -->
-		<activity android:name="com.ingcorp.webhard.SplashActivity"
-			android:theme="@style/SplashTheme"
-			android:exported="true"
+		<!-- AdMob App ID 추가 -->
+		<meta-data
+			android:name="com.google.android.gms.ads.APPLICATION_ID"
+			android:value="ca-app-pub-7292860375896480~6828633894" />
+
+		<activity
+			android:name="com.ingcorp.webhard.MainActivity"
+			android:label="@string/app_name"
 			android:screenOrientation="portrait"
-			android:launchMode="singleTop">
-
+			android:configChanges="keyboardHidden|orientation|screenSize"
+			android:launchMode="singleTask"
+			android:windowSoftInputMode="stateAlwaysHidden"
+			android:exported="true">
 			<intent-filter>
 				<action android:name="android.intent.action.MAIN" />
 				<category android:name="android.intent.category.LAUNCHER" />
 			</intent-filter>
-
 			<intent-filter>
 				<action android:name="android.intent.action.MAIN"/>
 				<category android:name="android.intent.category.LAUNCHER"/>
+				<category android:name="tv.ouya.intent.category.GAME"/>
+				<!--            <category android:name="android.intent.category.LEANBACK_LAUNCHER" />-->
+			</intent-filter>
+			<intent-filter>
+				<action android:name="android.intent.action.VIEW" />
+				<category android:name="android.intent.category.DEFAULT" />
+				<data android:mimeType="application/zip" />
+			</intent-filter>
+		</activity>
+
+		<!-- 스플래시 액티비티 - 메인 런처로 설정 -->
+		<activity
+			android:name=".SplashActivity"
+			android:exported="true"
+			android:launchMode="singleTop"
+			android:screenOrientation="portrait"
+			android:theme="@style/SplashTheme">
+			<intent-filter>
+				<action android:name="android.intent.action.MAIN" />
+
+				<category android:name="android.intent.category.LAUNCHER" />
+			</intent-filter>
+			<intent-filter>
+				<action android:name="android.intent.action.MAIN" />
+
+				<category android:name="android.intent.category.LAUNCHER" />
 				<category android:name="android.intent.category.LEANBACK_LAUNCHER" />
 			</intent-filter>
 		</activity>
 
 		<!-- 메인 MAME4droid 액티비티 - 런처 제거 -->
-		<activity android:name="com.ingcorp.webhard.MAME4droid"
+		<activity
+			android:name=".MAME4droid"
 			android:configChanges="keyboardHidden|orientation|screenSize"
-			android:launchMode="singleTask"
 			android:exported="true"
-			android:windowSoftInputMode="stateAlwaysHidden"
-			android:theme="@style/Theme.MAME4droid">
+			android:launchMode="singleTask"
+			android:theme="@style/Theme.MAME4droid"
+			android:windowSoftInputMode="stateAlwaysHidden">
 
 			<!-- 파일 연결 인텐트 필터 -->
 			<intent-filter>
 				<action android:name="android.intent.action.VIEW" />
+
 				<category android:name="android.intent.category.DEFAULT" />
+
 				<data android:mimeType="application/zip" />
-				<data android:mimeType="application/x-7z-compressed"/>
-				<data android:host="*" android:scheme="file" android:maxSdkVersion="23"/>
-				<data android:host="*" android:scheme="content" />
+				<data android:mimeType="application/x-7z-compressed" />
+				<data
+					android:host="*"
+					android:maxSdkVersion="23"
+					android:scheme="file" />
+				<data
+					android:host="*"
+					android:scheme="content" />
 			</intent-filter>
 		</activity>
 
 		<!-- 기존 액티비티들 -->
-		<activity android:name="com.ingcorp.webhard.prefs.UserPreferences"
-			android:theme="@style/Theme.MAME4droid.TitleBar"
-			android:label="MAME4droid Settings"/>
-		<activity android:name="com.ingcorp.webhard.WebHelpActivity"
+		<activity
+			android:name=".prefs.UserPreferences"
+			android:label="MAME4droid Settings"
+			android:theme="@style/Theme.MAME4droid.TitleBar" />
+		<activity
+			android:name=".WebHelpActivity"
+			android:label="MAME4droid Help"
 			android:launchMode="singleTop"
-			android:theme="@style/Theme.MAME4droid.TitleBar"
-			android:label="MAME4droid Help"/>
-		<activity android:name="com.ingcorp.webhard.prefs.DefineKeys"
-			android:theme="@style/Theme.MAME4droid.TitleBar"
-			android:label="MAME4droid Define Keys"/>
-		<activity android:name="com.ingcorp.webhard.prefs.ListKeys"
-			android:theme="@style/Theme.MAME4droid.TitleBar"
-			android:label="MAME4droid Player Keys"/>
-		<activity android:name="com.ingcorp.webhard.prefs.KeySelect"
+			android:theme="@style/Theme.MAME4droid.TitleBar" />
+		<activity
+			android:name=".prefs.DefineKeys"
+			android:label="MAME4droid Define Keys"
+			android:theme="@style/Theme.MAME4droid.TitleBar" />
+		<activity
+			android:name=".prefs.ListKeys"
+			android:label="MAME4droid Player Keys"
+			android:theme="@style/Theme.MAME4droid.TitleBar" />
+		<activity
+			android:name=".prefs.KeySelect"
 			android:label="Select Key"
-			android:theme="@android:style/Theme.Dialog"/>
+			android:theme="@android:style/Theme.Dialog" />
 	</application>
 
 </manifest>

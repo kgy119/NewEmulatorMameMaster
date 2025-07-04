@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-<!-- 
-<color name="emu_back_color">#303030</color>
- -->
+ <!--
+ <color name="emu_back_color">#303030</color>
+  -->
+ <color name= "colorPrimary">#673ab7</color>
+ <color name= "colorPrimaryDark">#320b86</color>
+ <color name= "colorAccent">#9a67ea</color>
  <color name="emu_back_color">#000000</color>
- 
- <color name="white">#ffffffff</color>
 
+ <color name="white">#ffffffff</color>
 
  <color name="yellow">#FFFF00</color>
  <color name="fuchsia">#FF00FF</color>
@@ -23,37 +25,38 @@
  <color name="blue">#0000FF</color>
  <color name="navy">#000080</color>
  <color name="black">#000000</color>
- <!-- 스플래시 다크모드 색상 - 그린 계열로 변경 -->
+
+ <!-- 스플래시 다크모드 색상 - 프라이머리 계열로 변경 -->
  <color name="splash_background">#1a1a1a</color>
  <color name="splash_text_primary">#ffffff</color>
  <color name="splash_text_secondary">#b3b3b3</color>
- <color name="splash_accent">#4caf50</color>
+ <color name="splash_accent">#9a67ea</color>
  <color name="splash_card_background">#2d2d2d</color>
 
- <!-- 게임 관련 색상 - 그린 계열로 변경 -->
- <color name="game_primary">#4caf50</color>
- <color name="game_secondary">#66bb6a</color>
- <color name="game_success">#81c784</color>
+ <!-- 게임 관련 색상 - 프라이머리(보라) 계열로 변경 -->
+ <color name="game_primary">#673ab7</color>
+ <color name="game_secondary">#7e57c2</color>
+ <color name="game_success">#9575cd</color>
  <color name="game_warning">#ff9800</color>
  <color name="game_error">#f44336</color>
 
- <!-- 추가 그린 계열 색상 (필요시 사용) -->
- <color name="green_dark">#388e3c</color>
- <color name="green_medium">#4caf50</color>
- <color name="green_light">#81c784</color>
- <color name="green_very_light">#c8e6c9</color>
+ <!-- 추가 보라 계열 색상 (필요시 사용) -->
+ <color name="purple_dark">#4527a0</color>
+ <color name="purple_medium">#673ab7</color>
+ <color name="purple_light">#9575cd</color>
+ <color name="purple_very_light">#d1c4e9</color>
 
- <!-- 그린 계열 그라데이션 색상 -->
- <color name="green_gradient_start">#4caf50</color>
- <color name="green_gradient_end">#2e7d32</color>
+ <!-- 보라 계열 그라데이션 색상 -->
+ <color name="purple_gradient_start">#673ab7</color>
+ <color name="purple_gradient_end">#320b86</color>
 
- <!-- 더 다양한 그린 톤 -->
- <color name="emerald_primary">#00c853</color>
- <color name="emerald_secondary">#69f0ae</color>
- <color name="forest_primary">#2e7d32</color>
- <color name="forest_secondary">#66bb6a</color>
- <color name="mint_primary">#26a69a</color>
- <color name="mint_secondary">#80cbc4</color>
+ <!-- 더 다양한 보라 톤 -->
+ <color name="violet_primary">#8e24aa</color>
+ <color name="violet_secondary">#ba68c8</color>
+ <color name="indigo_primary">#3f51b5</color>
+ <color name="indigo_secondary">#7986cb</color>
+ <color name="lavender_primary">#9c27b0</color>
+ <color name="lavender_secondary">#ce93d8</color>
 
  <!-- 다크 테마 기본 색상 -->
  <color name="dark_background">#121212</color>
@@ -61,5 +64,12 @@
  <color name="dark_text_primary">#ffffff</color>
  <color name="dark_text_secondary">#b3b3b3</color>
 
+ <!-- 추가 필요 색상들 -->
+ <color name="background_light">#FFFFFF</color>
+ <color name="text_primary">#212121</color>
+ <color name="text_secondary">#757575</color>
+ <color name="tab_selected">#FFFFFF</color>
+ <color name="tab_unselected">#B3FFFFFF</color>
+ <color name="tab_background">#673ab7</color>
 
 </resources>

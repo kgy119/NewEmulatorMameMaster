@@ -1,7 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
 
-	<!-- AppCompat 없이 기본 Android 테마만 사용하는 버전 -->
+	<style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+
+		<item name="colorPrimary">@color/colorPrimary</item>
+		<item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+		<item name="colorAccent">@color/colorAccent</item>
+		<item name="windowActionBar">false</item>
+		<item name="windowNoTitle">true</item>
+	</style>
 
 	<!-- 스플래시 전용 테마 - 기본 Android 테마 기반 -->
 	<style name="SplashTheme" parent="@android:style/Theme.NoTitleBar.Fullscreen">

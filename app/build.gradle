@@ -7,6 +7,7 @@ android {
 
     buildFeatures {
         buildConfig = true
+        viewBinding = false  // DataBinding 비활성화
     }
 
     compileOptions {
@@ -80,13 +81,10 @@ android {
     }
 
     namespace 'com.ingcorp.webhard'
-
 }
 
 dependencies {
-    //implementation "androidx.annotation:annotation:1.7.0"
-
-    // 최신 네트워크 라이브러리 (Retrofit + OkHttp)
+    // 네트워크 라이브러리 (Retrofit + OkHttp)
     implementation 'com.squareup.retrofit2:retrofit:2.9.0'
     implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
@@ -95,18 +93,35 @@ dependencies {
     // GSON for JSON parsing
     implementation 'com.google.code.gson:gson:2.10.1'
 
-    // Room Database (최신 Android 데이터베이스)
+    // Room Database (최신 버전으로 통일)
     implementation 'androidx.room:room-runtime:2.6.1'
     annotationProcessor 'androidx.room:room-compiler:2.6.1'
 
-    // AndroidX Core 라이브러리 (AppCompat 포함)
+    // Navigation (Fragment 관리)
+    implementation 'androidx.navigation:navigation-fragment:2.6.0'
+    implementation 'androidx.navigation:navigation-ui:2.6.0'
+
+    // AndroidX Core 라이브러리 (최신 버전으로 통일)
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'androidx.core:core:1.12.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+
+    // Material Design 컴포넌트 (최신 버전으로 통일)
     implementation 'com.google.android.material:material:1.11.0'
 
-    // 비동기 처리를 위한 라이브러리 (선택사항)
-    // implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+    // ViewPager2 및 Fragment 지원
+    implementation 'androidx.viewpager2:viewpager2:1.0.0'
+    implementation 'androidx.fragment:fragment:1.6.1'
+
+    // RecyclerView
+    implementation 'androidx.recyclerview:recyclerview:1.3.1'
+
+    // Glide (이미지 로딩)
+    implementation 'com.github.bumptech.glide:glide:4.15.1'
+    annotationProcessor 'com.github.bumptech.glide:compiler:4.15.1'
+
+    // Google AdMob (광고)
+    implementation 'com.google.android.gms:play-services-ads:22.4.0'
 }
 
 androidComponents {

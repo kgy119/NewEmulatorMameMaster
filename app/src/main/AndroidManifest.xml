@@ -29,6 +29,7 @@
 		>
 
 		<!-- 새로운 MainActivity - 첫 번째 액티비티로 설정 -->
+		<!-- 새로운 MainActivity - colorPrimary 테마 적용 -->
 		<activity android:name="com.ingcorp.webhard.MainActivity"
 			android:configChanges="keyboardHidden|orientation|screenSize"
 			android:exported="true"

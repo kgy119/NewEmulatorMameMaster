@@ -2,6 +2,12 @@
 
 <resources>
 
+	<style name="MainActivityTheme" parent="@android:style/Theme.Holo.Light.NoActionBar">
+		<item name="android:windowBackground">@color/colorPrimary</item>
+		<item name="android:textColorPrimary">@color/white</item>
+		<item name="android:statusBarColor">@color/colorPrimaryDark</item>
+	</style>
+
 	<style name="ListText">
 		<item name="android:textSize">26sp</item>
 		<item name="android:textColor">@color/white</item>

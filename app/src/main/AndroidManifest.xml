@@ -28,18 +28,24 @@
 		android:hasFragileUserData="true"
 		>
 
-		<!-- 새로운 MainActivity - 첫 번째 액티비티로 설정 -->
+		<activity android:name="com.ingcorp.webhard.SplashActivity"
+			android:configChanges="keyboardHidden|orientation|screenSize"
+			android:exported="true"
+			android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
+			android:screenOrientation="portrait">
+
+			<intent-filter>
+				<action android:name="android.intent.action.MAIN" />
+				<category android:name="android.intent.category.LAUNCHER" />
+			</intent-filter>
+		</activity>
+
 		<!-- 새로운 MainActivity - colorPrimary 테마 적용 -->
 		<activity android:name="com.ingcorp.webhard.MainActivity"
 			android:configChanges="keyboardHidden|orientation|screenSize"
 			android:exported="true"
 			android:theme="@style/MainActivityTheme"
 			android:fitsSystemWindows="true">
-
-			<intent-filter>
-				<action android:name="android.intent.action.MAIN" />
-				<category android:name="android.intent.category.LAUNCHER" />
-			</intent-filter>
 		</activity>
 
 		<!-- 기존 MAME4droid 액티비티 (런처에서 제거) -->

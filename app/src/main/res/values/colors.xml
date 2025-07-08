@@ -3,8 +3,8 @@
 <!-- 
 <color name="emu_back_color">#303030</color>
  -->
- <color name= "colorPrimary">#673ab7</color>
- <color name= "colorPrimaryDark">#320b86</color>
+ <color name= "colorPrimary">#320b86</color>
+ <color name= "colorPrimaryDark">#210660</color>
  <color name= "colorAccent">#9a67ea</color>
 
  <color name="emu_back_color">#000000</color>

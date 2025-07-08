@@ -7,8 +7,10 @@ import androidx.room.ColumnInfo;
 
 @Entity(tableName = "games")
 public class Game {
-    @PrimaryKey
-    @NonNull
+    @PrimaryKey(autoGenerate = true)
+    @ColumnInfo(name = "id")
+    private long id; // 자동 증가 Primary Key
+
     @ColumnInfo(name = "game_id")
     private String gameId;
 
@@ -30,9 +32,10 @@ public class Game {
     @ColumnInfo(name = "game_length")
     private String gameLength;
 
-    // 생성자
+    // 기본 생성자
     public Game() {}
 
+    // 생성자 (id 제외)
     public Game(String gameId, String gameName, String gameCate, String gameRom,
                 String gameImg, String gameCnt, String gameLength) {
         this.gameId = gameId;
@@ -43,6 +46,10 @@ public class Game {
         this.gameCnt = gameCnt;
         this.gameLength = gameLength;
     }
+
+    // Getters and Setters
+    public long getId() { return id; }
+    public void setId(long id) { this.id = id; }
 
     // Getters and Setters
     public String getGameId() {

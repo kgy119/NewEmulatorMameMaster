@@ -23,6 +23,18 @@ import androidx.viewpager2.widget.ViewPager2;
 import com.ingcorp.webhard.database.entity.Game;
 import com.ingcorp.webhard.manager.GameListManager;
 import com.ingcorp.webhard.adapter.GameAdapter;
+import com.ingcorp.webhard.network.NetworkClient;
+import com.ingcorp.webhard.network.ApiService;
+import com.ingcorp.webhard.MAME4droid;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+
+import okhttp3.ResponseBody;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -227,16 +239,14 @@ public class MainActivity extends FragmentActivity {
             gameAdapter.setOnGameClickListener(new GameAdapter.OnGameClickListener() {
                 @Override
                 public void onGameClick(Game game) {
-                    // 게임 클릭 시 실행할 코드
-                    // 예: 게임 실행 액티비티로 이동
-                    // Intent intent = new Intent(getContext(), GameActivity.class);
-                    // intent.putExtra("game_id", game.getGameId());
-                    // startActivity(intent);
+                    // 게임 클릭 시 ROM 확인 후 실행
+                    checkRomAndLaunchGame(game);
                 }
 
                 @Override
                 public void onGameLongClick(Game game) {
                     // 게임 롱클릭 시 실행할 코드 (예: 상세 정보 표시)
+                    showGameInfo(game);
                 }
             });
 
@@ -320,7 +330,166 @@ public class MainActivity extends FragmentActivity {
             }
         }
 
-        // updateGameCount 메서드와 사용하지 않는 변수들 제거
+        // 게임 정보 표시 (롱클릭)
+        private void showGameInfo(Game game) {
+            if (getContext() != null) {
+                new android.app.AlertDialog.Builder(getContext())
+                        .setTitle(game.getGameName())
+                        .setMessage("카테고리: " + game.getGameCate() + "\n" +
+                                "ROM 파일: " + game.getGameRom() + "\n" +
+                                "게임 ID: " + game.getGameId())
+                        .setPositiveButton("확인", null)
+                        .show();
+            }
+        }
+
+        // ROM 확인 후 게임 실행
+        private void checkRomAndLaunchGame(Game game) {
+            if (getContext() == null) return;
+
+            // ROM 파일 경로 확인
+            String romFileName = game.getGameRom();
+            if (romFileName == null || romFileName.isEmpty()) {
+                showToast("ROM 파일 정보가 없습니다.");
+                return;
+            }
+
+            // game_rom 값에 이미 .zip이 포함되어 있으므로 그대로 사용
+            // 예: game_rom = "streetfighter.zip"
+
+            // ROM 저장 경로 확인
+            String romsPath = getRomsPath();
+            if (romsPath == null) {
+                showToast("ROM 저장 경로를 찾을 수 없습니다.");
+                return;
+            }
+
+            File romFile = new File(romsPath, romFileName);
+
+            if (romFile.exists()) {
+                // ROM 파일이 있으면 바로 게임 실행
+                launchGame(game, romFile.getAbsolutePath());
+            } else {
+                // ROM 파일이 없으면 다운로드 후 실행
+                downloadAndLaunchGame(game, romFileName, romsPath);
+            }
+        }
+
+        // ROM 저장 경로 가져오기
+        private String getRomsPath() {
+            try {
+                // MAME4droid의 설치 경로에서 roms 폴더 경로 구성
+                File appDir = getContext().getExternalFilesDir(null);
+                if (appDir != null) {
+                    File romsDir = new File(appDir, "roms");
+                    if (!romsDir.exists()) {
+                        romsDir.mkdirs(); // roms 폴더가 없으면 생성
+                    }
+                    return romsDir.getAbsolutePath();
+                }
+
+                // 대안 경로
+                File fallbackDir = new File(getContext().getFilesDir(), "roms");
+                if (!fallbackDir.exists()) {
+                    fallbackDir.mkdirs();
+                }
+                return fallbackDir.getAbsolutePath();
+
+            } catch (Exception e) {
+                android.util.Log.e("GameFragment", "Error getting roms path", e);
+                return null;
+            }
+        }
+
+        // ROM 다운로드 후 게임 실행
+        private void downloadAndLaunchGame(Game game, String romFileName, String romsPath) {
+            // 다운로드 URL 구성
+            String downloadUrl = "http://retrogamemaster.net/r2/" + game.getGameRom();
+
+            showToast("ROM 파일을 다운로드하는 중...");
+
+            // NetworkClient의 ApiService를 사용한 ROM 다운로드
+            ApiService apiService = NetworkClient.getApiService();
+
+            Call<ResponseBody> call = apiService.downloadRom(downloadUrl);
+            call.enqueue(new Callback<ResponseBody>() {
+                @Override
+                public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                    if (response.isSuccessful() && response.body() != null) {
+                        // 백그라운드에서 파일 저장
+                        new Thread(() -> {
+                            try {
+                                File romFile = new File(romsPath, romFileName);
+                                FileOutputStream fos = new FileOutputStream(romFile);
+
+                                InputStream inputStream = response.body().byteStream();
+                                byte[] buffer = new byte[4096];
+                                int bytesRead;
+
+                                while ((bytesRead = inputStream.read(buffer)) != -1) {
+                                    fos.write(buffer, 0, bytesRead);
+                                }
+
+                                fos.close();
+                                inputStream.close();
+
+                                // 메인 스레드에서 게임 실행
+                                if (getActivity() != null) {
+                                    getActivity().runOnUiThread(() -> {
+                                        showToast("다운로드 완료! 게임을 시작합니다.");
+                                        launchGame(game, romFile.getAbsolutePath());
+                                    });
+                                }
+
+                            } catch (Exception e) {
+                                android.util.Log.e("GameFragment", "Error saving ROM file", e);
+                                if (getActivity() != null) {
+                                    getActivity().runOnUiThread(() ->
+                                            showToast("ROM 파일 저장에 실패했습니다."));
+                                }
+                            }
+                        }).start();
+
+                    } else {
+                        showToast("ROM 다운로드에 실패했습니다. (응답 오류)");
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<ResponseBody> call, Throwable t) {
+                    android.util.Log.e("GameFragment", "ROM download failed", t);
+                    showToast("ROM 다운로드에 실패했습니다: " + t.getMessage());
+                }
+            });
+        }
+
+        // 게임 실행
+        private void launchGame(Game game, String romFilePath) {
+            try {
+                // MAME4droid 액티비티로 인텐트 생성
+                android.content.Intent intent = new android.content.Intent(getContext(), MAME4droid.class);
+                intent.setAction(android.content.Intent.ACTION_VIEW);
+                intent.setData(android.net.Uri.fromFile(new File(romFilePath)));
+
+                // 게임 정보 전달
+                intent.putExtra("game_name", game.getGameName());
+                intent.putExtra("game_id", game.getGameId());
+
+                showToast("게임을 시작합니다: " + game.getGameName());
+                startActivity(intent);
+
+            } catch (Exception e) {
+                android.util.Log.e("GameFragment", "Error launching game", e);
+                showToast("게임 실행에 실패했습니다: " + e.getMessage());
+            }
+        }
+
+        // 토스트 메시지 표시
+        private void showToast(String message) {
+            if (getContext() != null) {
+                android.widget.Toast.makeText(getContext(), message, android.widget.Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 
     /**

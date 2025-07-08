@@ -175,8 +175,16 @@ public class MAME4droid extends Activity {
 						}});
 						t.start();
 					}
-					else
-					   showDialog(DialogHelper.DIALOG_ROMs);
+					else{
+						getMainHelper().setInstallationDirType(MainHelper.INSTALLATION_DIR_FILES_DIR);
+						getPrefsHelper().setROMsDIR("");
+						getPrefsHelper().setSAF_Uri(null);
+
+						Thread t = new Thread(new Runnable() { public void run() {
+							runMAME4droid();
+						}});
+						t.start();
+					}
 				}
 			} else { //roms dir no es null es que previamente hemos puesto "" o un path especifico. Venimos del recreate y si ha cambiado el installation path hay que actuzalizarlo
 
@@ -247,11 +255,11 @@ public class MAME4droid extends Activity {
 			frame.setOnApplyWindowInsetsListener(new View.OnApplyWindowInsetsListener() {
 				@Override
 				public WindowInsets onApplyWindowInsets(View v, WindowInsets insets) {
-					 Insets bars = insets.getInsets(WindowInsets.Type.displayCutout()
+					Insets bars = insets.getInsets(WindowInsets.Type.displayCutout()
 
-					/*	 | WindowInsets.Type.systemBars() */
+							/*	 | WindowInsets.Type.systemBars() */
 
-					 );
+					);
 					v.setPadding(bars.left, bars.top, bars.right, bars.bottom);
 					return WindowInsets.CONSUMED;
 				}

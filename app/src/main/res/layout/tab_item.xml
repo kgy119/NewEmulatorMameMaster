@@ -1,14 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
-<TextView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/tab_text"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    android:layout_marginEnd="10dp"
-    android:padding="10dp"
-    android:paddingStart="10dp"
-    android:textColor="@color/white"
-    android:textSize="14sp"
+    android:orientation="vertical"
     android:gravity="center"
-    android:background="@android:color/transparent"
-    android:clickable="true"
-    android:focusable="true" />
+    android:background="?android:attr/selectableItemBackground"
+    android:padding="5dp">
+
+    <TextView
+        android:id="@+id/tab_text"
+        android:layout_width="wrap_content"
+        android:layout_height="32dp"
+        android:textColor="@color/white"
+        android:textSize="16sp"
+        android:textStyle="normal"
+        android:gravity="center"
+        android:paddingHorizontal="8dp"
+        android:minHeight="32dp" />
+
+    <View
+        android:id="@+id/tab_indicator"
+        android:layout_width="match_parent"
+        android:layout_height="3dp"
+        android:layout_marginTop="4dp"
+        android:background="@drawable/tab_indicator"
+        android:visibility="gone" />
+
+</LinearLayout>

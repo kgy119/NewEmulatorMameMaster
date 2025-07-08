@@ -16,8 +16,8 @@
     <!-- 앱 아이콘 -->
     <ImageView
         android:id="@+id/app_icon"
-        android:layout_width="120dp"
-        android:layout_height="120dp"
+        android:layout_width="150dp"
+        android:layout_height="150dp"
         android:layout_gravity="center"
         android:src="@mipmap/ic_launcher"
         android:scaleType="centerInside"

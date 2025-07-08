@@ -93,6 +93,13 @@ android {
 }
 
 dependencies {
+    // Room 데이터베이스
+    implementation 'androidx.room:room-runtime:2.5.0'
+    annotationProcessor 'androidx.room:room-compiler:2.5.0'
+
+    // SharedPreferences 대안 (버전 저장용)
+    implementation 'androidx.preference:preference:1.2.1'
+
     // Retrofit 최신 버전
     implementation 'com.squareup.retrofit2:retrofit:2.9.0'
     implementation 'com.squareup.retrofit2:converter-gson:2.9.0'

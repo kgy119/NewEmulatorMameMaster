@@ -13,15 +13,16 @@
         android:layout_height="0dp"
         android:layout_weight="2" />
 
-    <!-- 앱 아이콘 -->
+    <!-- 앱 아이콘 (더 크게) -->
     <ImageView
         android:id="@+id/app_icon"
         android:layout_width="150dp"
         android:layout_height="150dp"
         android:layout_gravity="center"
-        android:src="@mipmap/ic_launcher"
-        android:scaleType="centerInside"
-        android:elevation="8dp" />
+        android:elevation="8dp"
+        android:scaleType="fitCenter"
+        android:adjustViewBounds="true"
+        android:src="@mipmap/ic_launcher" />
 
     <!-- 중간 여백 -->
     <View

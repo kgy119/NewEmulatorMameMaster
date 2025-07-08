@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/ad_container"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="?android:attr/selectableItemBackground"
+    android:padding="8dp"
+    android:layout_margin="4dp"
+    android:gravity="center">
+
+    <!-- 광고 이미지 -->
+    <ImageView
+        android:id="@+id/ad_image"
+        android:layout_width="120dp"
+        android:layout_height="120dp"
+        android:scaleType="centerCrop"
+        android:background="@drawable/game_image_background" />
+
+    <!-- AD 라벨 -->
+    <TextView
+        android:id="@+id/ad_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="AD"
+        android:textColor="@color/colorAccent"
+        android:textSize="8sp"
+        android:textStyle="bold"
+        android:background="@color/colorPrimary"
+        android:paddingHorizontal="4dp"
+        android:paddingVertical="1dp"
+        android:layout_marginTop="2dp" />
+
+    <!-- 광고 제목 -->
+    <TextView
+        android:id="@+id/ad_title"
+        android:layout_width="120dp"
+        android:layout_height="wrap_content"
+        android:textColor="@color/white"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:ellipsize="end"
+        android:maxLines="2"
+        android:layout_marginTop="4dp"
+        android:text="광고 제목" />
+
+</LinearLayout>

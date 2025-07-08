@@ -93,6 +93,9 @@ android {
 }
 
 dependencies {
+    // Google AdMob
+    implementation 'com.google.android.gms:play-services-ads:22.6.0'
+
     // Glide 이미지 로딩 라이브러리
     implementation 'com.github.bumptech.glide:glide:4.16.0'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.16.0'

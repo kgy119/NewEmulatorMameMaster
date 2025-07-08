@@ -70,6 +70,10 @@
 		<activity android:name="com.ingcorp.webhard.prefs.DefineKeys" android:theme="@style/Theme.MAME4droid.TitleBar" android:label="MAME4droid Define Keys"/>
 		<activity android:name="com.ingcorp.webhard.prefs.ListKeys" android:theme="@style/Theme.MAME4droid.TitleBar" android:label="MAME4droid Player Keys"/>
 		<activity android:name="com.ingcorp.webhard.prefs.KeySelect" android:label="Select Key" android:theme="@android:style/Theme.Dialog"/>
+
+		<meta-data
+			android:name="com.google.android.gms.ads.APPLICATION_ID"
+			android:value="ca-app-pub-7292860375896480~6828633894"/>
 	</application>
 
 </manifest>

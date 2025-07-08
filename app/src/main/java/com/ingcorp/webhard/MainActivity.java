@@ -6,7 +6,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
-import android.view.WindowInsets;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -16,22 +15,36 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.Lifecycle;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 import androidx.viewpager2.widget.ViewPager2;
+
+import com.ingcorp.webhard.database.entity.Game;
+import com.ingcorp.webhard.manager.GameListManager;
+import com.ingcorp.webhard.adapter.GameAdapter;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends FragmentActivity {
 
     private static final String[] TABS = {"ALL", "FIGHT", "ACTION", "SHOOTING", "SPORTS", "PUZZLE"};
+    private static final String[] CATEGORIES = {"ALL", "FIGHT", "ACTION", "SHOOTING", "SPORTS", "PUZZLE"};
 
     private TextView[] tabViews;
     private ViewPager2 viewPager;
     private HorizontalScrollView tabScrollView;
     private LinearLayout tabLayout;
     private int selectedTabIndex = 0;
+    private GameListManager gameListManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // GameListManager 초기화
+        gameListManager = new GameListManager(this);
 
         // EdgeToEdge 설정
         setupEdgeToEdge();
@@ -75,7 +88,7 @@ public class MainActivity extends FragmentActivity {
     }
 
     private void setupViewPager() {
-        GamePagerAdapter adapter = new GamePagerAdapter(getSupportFragmentManager(), getLifecycle());
+        GamePagerAdapter adapter = new GamePagerAdapter(getSupportFragmentManager(), getLifecycle(), gameListManager);
         viewPager.setAdapter(adapter);
 
         viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
@@ -119,19 +132,29 @@ public class MainActivity extends FragmentActivity {
         }
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (gameListManager != null) {
+            gameListManager.cleanup();
+        }
+    }
+
     /**
      * ViewPager2 Fragment 어댑터
      */
     private static class GamePagerAdapter extends FragmentStateAdapter {
+        private GameListManager gameListManager;
 
-        public GamePagerAdapter(@NonNull FragmentManager fragmentManager, @NonNull Lifecycle lifecycle) {
+        public GamePagerAdapter(@NonNull FragmentManager fragmentManager, @NonNull Lifecycle lifecycle, GameListManager gameListManager) {
             super(fragmentManager, lifecycle);
+            this.gameListManager = gameListManager;
         }
 
         @NonNull
         @Override
         public Fragment createFragment(int position) {
-            return GameFragment.newInstance(position);
+            return GameFragment.newInstance(position, gameListManager);
         }
 
         @Override
@@ -146,8 +169,16 @@ public class MainActivity extends FragmentActivity {
     public static class GameFragment extends Fragment {
         private static final String ARG_POSITION = "position";
 
-        public static GameFragment newInstance(int position) {
+        private GameListManager gameListManager;
+        private RecyclerView recyclerView;
+        private GameAdapter gameAdapter;
+        private List<Game> gameList;
+        private View loadingView;
+        private View emptyView;
+
+        public static GameFragment newInstance(int position, GameListManager gameListManager) {
             GameFragment fragment = new GameFragment();
+            fragment.gameListManager = gameListManager;
             Bundle args = new Bundle();
             args.putInt(ARG_POSITION, position);
             fragment.setArguments(args);
@@ -160,40 +191,136 @@ public class MainActivity extends FragmentActivity {
 
             int position = getArguments() != null ? getArguments().getInt(ARG_POSITION, 0) : 0;
 
-            TextView titleView = view.findViewById(R.id.title_text);
-            TextView descriptionView = view.findViewById(R.id.description_text);
-            TextView gameListView = view.findViewById(R.id.game_list_text);
+            // 뷰 초기화
+            initViews(view);
 
-            titleView.setText(TABS[position] + " Games");
-            descriptionView.setText(getTabDescription(position));
-            gameListView.setText(getGameListPlaceholder(position));
+            // RecyclerView 설정
+            setupRecyclerView();
+
+            // 게임 목록 로드
+            loadGames(position);
 
             return view;
         }
 
-        private String getTabDescription(int tabIndex) {
-            switch (tabIndex) {
-                case 0: return "Browse all available arcade games\nin one convenient location.";
-                case 1: return "Classic fighting games including\nStreet Fighter, King of Fighters, and more.";
-                case 2: return "Action-packed adventures and\nplatform games for thrill seekers.";
-                case 3: return "Shoot 'em up games and\nbullet hell classics.";
-                case 4: return "Sports simulations including\nbaseball, football, and racing.";
-                case 5: return "Brain teasers and puzzle games\nto challenge your mind.";
-                default: return "Game category description";
+        private void initViews(View view) {
+            recyclerView = view.findViewById(R.id.recycler_view_games);
+            loadingView = view.findViewById(R.id.loading_view);
+            emptyView = view.findViewById(R.id.empty_view);
+
+            // 디버깅용 로그
+            android.util.Log.d("GameFragment", "initViews - recyclerView: " + (recyclerView != null));
+            android.util.Log.d("GameFragment", "initViews - loadingView: " + (loadingView != null));
+            android.util.Log.d("GameFragment", "initViews - emptyView: " + (emptyView != null));
+        }
+
+        private void setupRecyclerView() {
+            // 2열 그리드 레이아웃 매니저 설정
+            androidx.recyclerview.widget.GridLayoutManager gridLayoutManager =
+                    new androidx.recyclerview.widget.GridLayoutManager(getContext(), 2);
+            recyclerView.setLayoutManager(gridLayoutManager);
+
+            gameList = new ArrayList<>();
+            gameAdapter = new GameAdapter(gameList, getContext());
+
+            // 게임 클릭 리스너 설정
+            gameAdapter.setOnGameClickListener(new GameAdapter.OnGameClickListener() {
+                @Override
+                public void onGameClick(Game game) {
+                    // 게임 클릭 시 실행할 코드
+                    // 예: 게임 실행 액티비티로 이동
+                    // Intent intent = new Intent(getContext(), GameActivity.class);
+                    // intent.putExtra("game_id", game.getGameId());
+                    // startActivity(intent);
+                }
+
+                @Override
+                public void onGameLongClick(Game game) {
+                    // 게임 롱클릭 시 실행할 코드 (예: 상세 정보 표시)
+                }
+            });
+
+            recyclerView.setAdapter(gameAdapter);
+        }
+
+        // setupUI 메서드와 getTabDescription 메서드 제거
+
+        private void loadGames(int position) {
+            // 로딩 상태 표시
+            showLoading(true);
+
+            String category = CATEGORIES[position];
+
+            gameListManager.getGamesByCategory(category, new GameListManager.GameListListener() {
+                @Override
+                public void onGamesLoaded(List<Game> games) {
+                    android.util.Log.d("GameFragment", "Games loaded for category " + category + ": " +
+                            (games == null ? "null" : games.size() + " games"));
+                    updateGameList(games);
+                    showLoading(false);
+                }
+            });
+        }
+
+        private void updateGameList(List<Game> games) {
+            // 디버깅용 로그
+            android.util.Log.d("GameFragment", "updateGameList called with " +
+                    (games == null ? "null" : games.size() + " games"));
+
+            if (games != null && !games.isEmpty()) {
+                // 게임이 있는 경우
+                gameList.clear();
+                gameList.addAll(games);
+                gameAdapter.notifyDataSetChanged();
+
+                // RecyclerView만 표시
+                recyclerView.setVisibility(View.VISIBLE);
+                if (loadingView != null) loadingView.setVisibility(View.GONE);
+                if (emptyView != null) emptyView.setVisibility(View.GONE);
+
+                android.util.Log.d("GameFragment", "Showing RecyclerView only");
+            } else {
+                // 빈 목록 처리
+                gameList.clear();
+                if (gameAdapter != null) {
+                    gameAdapter.notifyDataSetChanged();
+                }
+
+                // EmptyView만 표시
+                recyclerView.setVisibility(View.GONE);
+                if (loadingView != null) loadingView.setVisibility(View.GONE);
+                if (emptyView != null) {
+                    emptyView.setVisibility(View.VISIBLE);
+                    android.util.Log.d("GameFragment", "Showing EmptyView only");
+                } else {
+                    android.util.Log.d("GameFragment", "EmptyView is null!");
+                }
             }
         }
 
-        private String getGameListPlaceholder(int tabIndex) {
-            switch (tabIndex) {
-                case 0: return "• All Games (1000+)\n• Recently Added\n• Most Popular\n• Random Selection";
-                case 1: return "• Street Fighter Series\n• King of Fighters\n• Tekken\n• Mortal Kombat";
-                case 2: return "• Metal Slug Series\n• Contra\n• Double Dragon\n• Final Fight";
-                case 3: return "• 1942, 1943, 1944\n• Gradius Series\n• R-Type\n• Galaga";
-                case 4: return "• Track & Field\n• Baseball Stars\n• Goal! Goal! Goal!\n• Road Fighter";
-                case 5: return "• Puzzle Bobble\n• Tetris\n• Columns\n• Money Puzzle";
-                default: return "Game list loading...";
+        private void showLoading(boolean show) {
+            if (show) {
+                // 로딩 중: 모든 뷰 숨김
+                recyclerView.setVisibility(View.GONE);
+                if (emptyView != null) emptyView.setVisibility(View.GONE);
+                if (loadingView != null) loadingView.setVisibility(View.VISIBLE);
+            }
+            // 로딩 완료는 updateGameList에서 처리
+        }
+
+
+
+        // Fragment가 다시 보여질 때 데이터 새로고침
+        @Override
+        public void onResume() {
+            super.onResume();
+            if (getArguments() != null && gameListManager != null) {
+                int position = getArguments().getInt(ARG_POSITION, 0);
+                loadGames(position);
             }
         }
+
+        // updateGameCount 메서드와 사용하지 않는 변수들 제거
     }
 
     /**

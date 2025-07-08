@@ -1,174 +1,83 @@
 package com.ingcorp.webhard;
 
-import android.app.Activity;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.View;
-import android.view.WindowInsets;
-import android.widget.LinearLayout;
-import android.widget.TextView;
-import android.widget.HorizontalScrollView;
-import android.graphics.Insets;
-import android.graphics.Color;
-import android.util.TypedValue;
 import android.view.ViewGroup;
 import android.view.Window;
-import android.view.Gravity;
+import android.view.WindowInsets;
+import android.widget.HorizontalScrollView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.viewpager2.widget.ViewPager2;
-import androidx.recyclerview.widget.RecyclerView;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.Lifecycle;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
+import androidx.viewpager2.widget.ViewPager2;
 
 public class MainActivity extends FragmentActivity {
 
     private static final String[] TABS = {"ALL", "FIGHT", "ACTION", "SHOOTING", "SPORTS", "PUZZLE"};
+
     private TextView[] tabViews;
     private ViewPager2 viewPager;
+    private HorizontalScrollView tabScrollView;
+    private LinearLayout tabLayout;
     private int selectedTabIndex = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // EdgeToEdge 스타일 적용
+        // EdgeToEdge 설정
         setupEdgeToEdge();
 
-        // colorPrimary 및 colorPrimaryDark 색상 가져오기
-        int colorPrimary = getResources().getColor(R.color.colorPrimary);
-        int colorPrimaryDark = getResources().getColor(R.color.colorPrimaryDark);
-        int colorAccent = getResources().getColor(R.color.colorAccent);
+        // 레이아웃 설정
+        setContentView(R.layout.activity_main);
 
-        // 루트 레이아웃 생성
-        LinearLayout rootLayout = new LinearLayout(this);
-        rootLayout.setOrientation(LinearLayout.VERTICAL);
-        rootLayout.setBackgroundColor(colorPrimary);
+        // 뷰 초기화
+        initViews();
 
-        // 레이아웃 파라미터 설정
-        LinearLayout.LayoutParams rootParams = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
-        );
-        rootLayout.setLayoutParams(rootParams);
+        // 탭 생성
+        createTabs();
 
-        // 탭 컨테이너 생성
-        LinearLayout tabContainer = createTabContainer(colorAccent);
-        rootLayout.addView(tabContainer);
-
-        // ViewPager2 생성
-        viewPager = createViewPager2();
-        rootLayout.addView(viewPager);
-
-        // WindowInsets 처리
-        setupWindowInsets(rootLayout);
-
-        // 레이아웃을 액티비티의 콘텐츠 뷰로 설정
-        setContentView(rootLayout);
+        // ViewPager 설정
+        setupViewPager();
     }
 
-    /**
-     * 탭 컨테이너 생성
-     */
-    private LinearLayout createTabContainer(int colorAccent) {
-        // 탭 컨테이너
-        LinearLayout tabContainer = new LinearLayout(this);
-        tabContainer.setOrientation(LinearLayout.VERTICAL);
-        tabContainer.setBackgroundColor(getResources().getColor(R.color.colorPrimaryDark));
+    private void initViews() {
+        viewPager = findViewById(R.id.view_pager);
+        tabScrollView = findViewById(R.id.tab_scroll_view);
+        tabLayout = findViewById(R.id.tab_layout);
+    }
 
-        LinearLayout.LayoutParams tabContainerParams = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-        );
-        tabContainer.setLayoutParams(tabContainerParams);
-
-        // 탭 스크롤뷰 (수평 스크롤)
-        HorizontalScrollView tabScrollView = new HorizontalScrollView(this);
-        tabScrollView.setHorizontalScrollBarEnabled(false);
-        tabScrollView.setOverScrollMode(View.OVER_SCROLL_NEVER);
-
-        // 탭 레이아웃 (탭들을 담는 컨테이너)
-        LinearLayout tabLayout = new LinearLayout(this);
-        tabLayout.setOrientation(LinearLayout.HORIZONTAL);
-        tabLayout.setPadding(20, 30, 20, 20);
-
-        // 탭 뷰들 생성
+    private void createTabs() {
         tabViews = new TextView[TABS.length];
+        LayoutInflater inflater = getLayoutInflater();
+
         for (int i = 0; i < TABS.length; i++) {
-            TextView tabView = createTabView(TABS[i], i, colorAccent);
+            TextView tabView = (TextView) inflater.inflate(R.layout.tab_item, tabLayout, false);
+            tabView.setText(TABS[i]);
+
+            final int index = i;
+            tabView.setOnClickListener(v -> selectTab(index));
+
             tabViews[i] = tabView;
             tabLayout.addView(tabView);
-
-            // 탭 간격 추가 (마지막 탭 제외)
-            if (i < TABS.length - 1) {
-                View spacer = new View(this);
-                LinearLayout.LayoutParams spacerParams = new LinearLayout.LayoutParams(
-                        30, ViewGroup.LayoutParams.MATCH_PARENT
-                );
-                spacer.setLayoutParams(spacerParams);
-                tabLayout.addView(spacer);
-            }
         }
 
-        // 첫 번째 탭을 선택된 상태로 설정
+        // 첫 번째 탭 선택
         updateTabSelection(0);
-
-        tabScrollView.addView(tabLayout);
-        tabContainer.addView(tabScrollView);
-
-        return tabContainer;
     }
 
-    /**
-     * 개별 탭 뷰 생성
-     */
-    private TextView createTabView(String tabText, int index, int colorAccent) {
-        TextView tabView = new TextView(this);
-        tabView.setText(tabText);
-        tabView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
-        tabView.setTextColor(getResources().getColor(R.color.white));
-        tabView.setGravity(Gravity.CENTER);
-        tabView.setPadding(30, 15, 30, 15);
-
-        // 탭 레이아웃 파라미터
-        LinearLayout.LayoutParams tabParams = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-        );
-        tabView.setLayoutParams(tabParams);
-
-        // 탭 클릭 리스너
-        tabView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                selectTab(index);
-            }
-        });
-
-        return tabView;
-    }
-
-    /**
-     * ViewPager2 생성
-     */
-    private ViewPager2 createViewPager2() {
-        ViewPager2 viewPager = new ViewPager2(this);
-
-        LinearLayout.LayoutParams viewPagerParams = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                0, // height
-                1.0f // weight
-        );
-        viewPager.setLayoutParams(viewPagerParams);
-
-        // ViewPager2 어댑터 설정
+    private void setupViewPager() {
         GamePagerAdapter adapter = new GamePagerAdapter(getSupportFragmentManager(), getLifecycle());
         viewPager.setAdapter(adapter);
 
-        // ViewPager2 페이지 변경 리스너
         viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override
             public void onPageSelected(int position) {
@@ -176,22 +85,14 @@ public class MainActivity extends FragmentActivity {
                 scrollToSelectedTab(position);
             }
         });
-
-        return viewPager;
     }
 
-    /**
-     * 탭 선택 처리
-     */
     private void selectTab(int index) {
         if (selectedTabIndex != index) {
             viewPager.setCurrentItem(index, true);
         }
     }
 
-    /**
-     * 탭 선택 상태 업데이트
-     */
     private void updateTabSelection(int index) {
         selectedTabIndex = index;
         int colorAccent = getResources().getColor(R.color.colorAccent);
@@ -201,31 +102,20 @@ public class MainActivity extends FragmentActivity {
             if (i == index) {
                 // 선택된 탭
                 tabView.setBackgroundColor(colorAccent);
-                tabView.setTextColor(getResources().getColor(R.color.white));
-                tabView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 17);
+                tabView.setTextSize(17);
             } else {
                 // 선택되지 않은 탭
-                tabView.setBackgroundColor(Color.TRANSPARENT);
-                tabView.setTextColor(getResources().getColor(R.color.white));
-                tabView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+                tabView.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+                tabView.setTextSize(16);
             }
         }
     }
 
-    /**
-     * 선택된 탭으로 스크롤
-     */
     private void scrollToSelectedTab(int index) {
         if (tabViews != null && index < tabViews.length) {
             TextView selectedTab = tabViews[index];
-            ViewGroup parent = (ViewGroup) selectedTab.getParent();
-            if (parent != null && parent.getParent() instanceof HorizontalScrollView) {
-                HorizontalScrollView scrollView = (HorizontalScrollView) parent.getParent();
-
-                // 선택된 탭을 중앙으로 스크롤
-                int scrollX = selectedTab.getLeft() - (scrollView.getWidth() / 2) + (selectedTab.getWidth() / 2);
-                scrollView.smoothScrollTo(Math.max(0, scrollX), 0);
-            }
+            int scrollX = selectedTab.getLeft() - (tabScrollView.getWidth() / 2) + (selectedTab.getWidth() / 2);
+            tabScrollView.smoothScrollTo(Math.max(0, scrollX), 0);
         }
     }
 
@@ -265,46 +155,20 @@ public class MainActivity extends FragmentActivity {
         }
 
         @Override
-        public View onCreateView(@NonNull android.view.LayoutInflater inflater,
-                                 android.view.ViewGroup container, Bundle savedInstanceState) {
+        public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+            View view = inflater.inflate(R.layout.fragment_game, container, false);
+
             int position = getArguments() != null ? getArguments().getInt(ARG_POSITION, 0) : 0;
 
-            // Fragment 레이아웃 생성
-            LinearLayout fragmentLayout = new LinearLayout(getContext());
-            fragmentLayout.setOrientation(LinearLayout.VERTICAL);
-            fragmentLayout.setGravity(Gravity.CENTER);
-            fragmentLayout.setBackgroundColor(getContext().getResources().getColor(R.color.colorPrimary));
-            fragmentLayout.setPadding(40, 60, 40, 60);
+            TextView titleView = view.findViewById(R.id.title_text);
+            TextView descriptionView = view.findViewById(R.id.description_text);
+            TextView gameListView = view.findViewById(R.id.game_list_text);
 
-            // 카테고리 제목
-            TextView titleView = new TextView(getContext());
             titleView.setText(TABS[position] + " Games");
-            titleView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 28);
-            titleView.setTextColor(getContext().getResources().getColor(R.color.white));
-            titleView.setGravity(Gravity.CENTER);
-            titleView.setPadding(20, 40, 20, 30);
-
-            // 카테고리 설명
-            TextView descriptionView = new TextView(getContext());
             descriptionView.setText(getTabDescription(position));
-            descriptionView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
-            descriptionView.setTextColor(getContext().getResources().getColor(R.color.white));
-            descriptionView.setGravity(Gravity.CENTER);
-            descriptionView.setPadding(20, 20, 20, 30);
-
-            // 게임 목록 플레이스홀더
-            TextView gameListView = new TextView(getContext());
             gameListView.setText(getGameListPlaceholder(position));
-            gameListView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-            gameListView.setTextColor(getContext().getResources().getColor(R.color.colorAccent));
-            gameListView.setGravity(Gravity.CENTER);
-            gameListView.setPadding(20, 20, 20, 40);
 
-            fragmentLayout.addView(titleView);
-            fragmentLayout.addView(descriptionView);
-            fragmentLayout.addView(gameListView);
-
-            return fragmentLayout;
+            return view;
         }
 
         private String getTabDescription(int tabIndex) {
@@ -338,7 +202,6 @@ public class MainActivity extends FragmentActivity {
     private void setupEdgeToEdge() {
         Window window = getWindow();
         View decorView = window.getDecorView();
-
         int colorPrimaryDark = getResources().getColor(R.color.colorPrimaryDark);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -349,13 +212,11 @@ public class MainActivity extends FragmentActivity {
             setupEdgeToEdgeApi23(window, decorView, colorPrimaryDark);
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             setupEdgeToEdgeApi21(window, decorView, colorPrimaryDark);
-        } else {
-            setupEdgeToEdgeBase(window, decorView);
         }
     }
 
     private void setupEdgeToEdgeApi29(Window window, View decorView, int colorPrimaryDark) {
-        setDecorFitsSystemWindows(window, false);
+        window.setDecorFitsSystemWindows(false);
         window.setStatusBarColor(colorPrimaryDark);
         window.setNavigationBarColor(colorPrimaryDark);
         window.setStatusBarContrastEnforced(false);
@@ -368,7 +229,7 @@ public class MainActivity extends FragmentActivity {
     }
 
     private void setupEdgeToEdgeApi26(Window window, View decorView, int colorPrimaryDark) {
-        setDecorFitsSystemWindows(window, false);
+        window.setDecorFitsSystemWindows(false);
         window.setStatusBarColor(colorPrimaryDark);
         window.setNavigationBarColor(colorPrimaryDark);
 
@@ -379,7 +240,7 @@ public class MainActivity extends FragmentActivity {
     }
 
     private void setupEdgeToEdgeApi23(Window window, View decorView, int colorPrimaryDark) {
-        setDecorFitsSystemWindows(window, false);
+        window.setDecorFitsSystemWindows(false);
         window.setStatusBarColor(colorPrimaryDark);
         window.setNavigationBarColor(colorPrimaryDark);
 
@@ -389,52 +250,8 @@ public class MainActivity extends FragmentActivity {
     }
 
     private void setupEdgeToEdgeApi21(Window window, View decorView, int colorPrimaryDark) {
-        setDecorFitsSystemWindows(window, false);
+        window.setDecorFitsSystemWindows(false);
         window.setStatusBarColor(colorPrimaryDark);
         window.setNavigationBarColor(colorPrimaryDark);
-    }
-
-    private void setupEdgeToEdgeBase(Window window, View decorView) {
-        // API 21 미만에서는 기본 동작
-    }
-
-    private void setDecorFitsSystemWindows(Window window, boolean decorFitsSystemWindows) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            window.setDecorFitsSystemWindows(decorFitsSystemWindows);
-        } else {
-            View decorView = window.getDecorView();
-            if (!decorFitsSystemWindows) {
-                int flags = decorView.getSystemUiVisibility();
-                flags |= View.SYSTEM_UI_FLAG_LAYOUT_STABLE;
-                flags |= View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION;
-                flags |= View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN;
-                decorView.setSystemUiVisibility(flags);
-            }
-        }
-    }
-
-    private void setupWindowInsets(LinearLayout rootLayout) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            rootLayout.setOnApplyWindowInsetsListener(new View.OnApplyWindowInsetsListener() {
-                @Override
-                public WindowInsets onApplyWindowInsets(View v, WindowInsets insets) {
-                    Insets systemBars = insets.getInsets(WindowInsets.Type.systemBars());
-                    v.setPadding(systemBars.left, systemBars.top,
-                            systemBars.right, systemBars.bottom);
-                    return WindowInsets.CONSUMED;
-                }
-            });
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT_WATCH) {
-            rootLayout.setOnApplyWindowInsetsListener(new View.OnApplyWindowInsetsListener() {
-                @Override
-                public WindowInsets onApplyWindowInsets(View v, WindowInsets insets) {
-                    v.setPadding(insets.getSystemWindowInsetLeft(),
-                            insets.getSystemWindowInsetTop(),
-                            insets.getSystemWindowInsetRight(),
-                            insets.getSystemWindowInsetBottom());
-                    return insets;
-                }
-            });
-        }
     }
 }

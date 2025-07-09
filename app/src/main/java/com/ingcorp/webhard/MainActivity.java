@@ -2,6 +2,7 @@ package com.ingcorp.webhard;
 
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.Window;
@@ -10,13 +11,17 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.fragment.app.FragmentActivity;
+import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.ViewPager2;
 
+import com.ingcorp.webhard.adapter.GameAdapter;
 import com.ingcorp.webhard.adapter.GamePagerAdapter;
+import com.ingcorp.webhard.manager.AdMobManager;
 import com.ingcorp.webhard.manager.GameListManager;
 
 public class MainActivity extends FragmentActivity {
 
+    private String TAG = "mame00";
     private static final String[] TABS = {"ALL", "FIGHT", "ACTION", "SHOOTING", "SPORTS", "PUZZLE"};
 
     private TextView[] tabViews;
@@ -26,6 +31,10 @@ public class MainActivity extends FragmentActivity {
     private int selectedTabIndex = 0;
     private GameListManager gameListManager;
 
+    private GameAdapter gameAdapter; // 클래스 멤버 변수로 선언
+    private RecyclerView recyclerView;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -33,6 +42,20 @@ public class MainActivity extends FragmentActivity {
         gameListManager = new GameListManager(this);
         setupEdgeToEdge();
         setContentView(R.layout.activity_main);
+
+        // AdMob 초기화 (앱 시작 시 한 번만)
+        AdMobManager.getInstance(this).initialize(new AdMobManager.OnAdMobInitializedListener() {
+            @Override
+            public void onInitialized(boolean success) {
+                if (success) {
+                    Log.d(TAG, "AdMob 초기화 성공 - 광고를 로드할 준비가 완료됨");
+                    // 어댑터가 이미 생성되어 있다면 갱신
+                    refreshAdapterIfNeeded();
+                } else {
+                    Log.e(TAG, "AdMob 초기화 실패 - 광고가 표시되지 않음");
+                }
+            }
+        });
 
         initViews();
         createTabs();
@@ -124,6 +147,13 @@ public class MainActivity extends FragmentActivity {
             View selectedTabContainer = (View) selectedTabText.getParent();
             int scrollX = selectedTabContainer.getLeft() - (tabScrollView.getWidth() / 2) + (selectedTabContainer.getWidth() / 2);
             tabScrollView.smoothScrollTo(Math.max(0, scrollX), 0);
+        }
+    }
+
+    private void refreshAdapterIfNeeded() {
+        // RecyclerView 어댑터가 있다면 갱신하여 광고 로드
+        if (gameAdapter != null) {
+            gameAdapter.notifyDataSetChanged();
         }
     }
 

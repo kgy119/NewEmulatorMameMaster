@@ -1,11 +1,9 @@
 package com.ingcorp.webhard;
 
-import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.Window;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -14,6 +12,7 @@ import androidx.fragment.app.FragmentActivity;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.ViewPager2;
 
+import com.google.android.gms.ads.AdView;
 import com.ingcorp.webhard.adapter.GameAdapter;
 import com.ingcorp.webhard.adapter.GamePagerAdapter;
 import com.ingcorp.webhard.manager.AdMobManager;
@@ -34,6 +33,9 @@ public class MainActivity extends FragmentActivity {
     private GameAdapter gameAdapter; // 클래스 멤버 변수로 선언
     private RecyclerView recyclerView;
 
+    // 접는 배너 관련
+    private AdView adViewBanner;
+    private AdMobManager adMobManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,14 +44,19 @@ public class MainActivity extends FragmentActivity {
         gameListManager = new GameListManager(this);
         setContentView(R.layout.activity_main);
 
+        // AdMobManager 초기화
+        adMobManager = AdMobManager.getInstance(this);
+
         // AdMob 초기화 (앱 시작 시 한 번만)
-        AdMobManager.getInstance(this).initialize(new AdMobManager.OnAdMobInitializedListener() {
+        adMobManager.initialize(new AdMobManager.OnAdMobInitializedListener() {
             @Override
             public void onInitialized(boolean success) {
                 if (success) {
                     Log.d(TAG, "AdMob 초기화 성공 - 광고를 로드할 준비가 완료됨");
                     // 어댑터가 이미 생성되어 있다면 갱신
                     refreshAdapterIfNeeded();
+                    // 접는 배너 초기화
+                    initCollapsibleBanner();
                 } else {
                     Log.e(TAG, "AdMob 초기화 실패 - 광고가 표시되지 않음");
                 }
@@ -59,12 +66,63 @@ public class MainActivity extends FragmentActivity {
         initViews();
         createTabs();
         setupViewPager();
+
+        // 디버깅을 위한 기기 정보 로그
+        adMobManager.logDeviceInfo();
     }
 
     private void initViews() {
         viewPager = findViewById(R.id.view_pager);
         tabScrollView = findViewById(R.id.tab_scroll_view);
         tabLayout = findViewById(R.id.tab_layout);
+        adViewBanner = findViewById(R.id.banner_ad_view);
+    }
+
+    private void initCollapsibleBanner() {
+        if (adMobManager == null) {
+            Log.e(TAG, "AdMobManager가 초기화되지 않았습니다.");
+            return;
+        }
+
+        // 접는 배너 지원 여부 확인
+        if (!adMobManager.isCollapsibleBannerSupported()) {
+            Log.w(TAG, "현재 기기는 접는 배너를 지원하지 않습니다. (Android 10 미만)");
+            // 일반 배너로 대체하거나 숨김 처리
+            adViewBanner.setVisibility(View.GONE);
+            return;
+        }
+
+        Log.d(TAG, "접는 배너 초기화 시작");
+
+        // 접는 배너 로드
+        adMobManager.loadCollapsibleBannerAd(adViewBanner, new AdMobManager.OnBannerAdLoadedListener() {
+            @Override
+            public void onAdLoaded() {
+                Log.d(TAG, "접는 배너 광고 로드 완료");
+                runOnUiThread(() -> {
+                    if (adViewBanner != null) {
+                        adViewBanner.setVisibility(View.VISIBLE);
+                        Log.d(TAG, "접는 배너 광고 표시됨");
+                    }
+                });
+            }
+
+            @Override
+            public void onAdLoadFailed(String error) {
+                Log.e(TAG, "접는 배너 광고 로드 실패: " + error);
+                runOnUiThread(() -> {
+                    if (adViewBanner != null) {
+                        adViewBanner.setVisibility(View.GONE);
+                        Log.d(TAG, "접는 배너 광고 숨김 처리");
+                    }
+                });
+            }
+
+            @Override
+            public void onAdClicked() {
+                Log.d(TAG, "접는 배너 광고 클릭됨");
+            }
+        });
     }
 
     private void createTabs() {
@@ -157,11 +215,29 @@ public class MainActivity extends FragmentActivity {
     }
 
     @Override
+    protected void onPause() {
+        super.onPause();
+        if (adMobManager != null) {
+            adMobManager.pauseBannerAd();
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (adMobManager != null) {
+            adMobManager.resumeBannerAd();
+        }
+    }
+
+    @Override
     protected void onDestroy() {
         super.onDestroy();
         if (gameListManager != null) {
             gameListManager.cleanup();
         }
+        if (adMobManager != null) {
+            adMobManager.cleanup();
+        }
     }
-
 }

@@ -40,7 +40,6 @@ public class MainActivity extends FragmentActivity {
         super.onCreate(savedInstanceState);
 
         gameListManager = new GameListManager(this);
-        setupEdgeToEdge();
         setContentView(R.layout.activity_main);
 
         // AdMob 초기화 (앱 시작 시 한 번만)
@@ -165,59 +164,4 @@ public class MainActivity extends FragmentActivity {
         }
     }
 
-    private void setupEdgeToEdge() {
-        Window window = getWindow();
-        View decorView = window.getDecorView();
-        int colorPrimaryDark = getResources().getColor(R.color.colorPrimaryDark);
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            setupEdgeToEdgeApi29(window, decorView, colorPrimaryDark);
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            setupEdgeToEdgeApi26(window, decorView, colorPrimaryDark);
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            setupEdgeToEdgeApi23(window, decorView, colorPrimaryDark);
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            setupEdgeToEdgeApi21(window, decorView, colorPrimaryDark);
-        }
-    }
-
-    private void setupEdgeToEdgeApi29(Window window, View decorView, int colorPrimaryDark) {
-        window.setDecorFitsSystemWindows(false);
-        window.setStatusBarColor(colorPrimaryDark);
-        window.setNavigationBarColor(colorPrimaryDark);
-        window.setStatusBarContrastEnforced(false);
-        window.setNavigationBarContrastEnforced(false);
-
-        int flags = decorView.getSystemUiVisibility();
-        flags &= ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
-        flags &= ~View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
-        decorView.setSystemUiVisibility(flags);
-    }
-
-    private void setupEdgeToEdgeApi26(Window window, View decorView, int colorPrimaryDark) {
-        window.setDecorFitsSystemWindows(false);
-        window.setStatusBarColor(colorPrimaryDark);
-        window.setNavigationBarColor(colorPrimaryDark);
-
-        int flags = decorView.getSystemUiVisibility();
-        flags &= ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
-        flags &= ~View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
-        decorView.setSystemUiVisibility(flags);
-    }
-
-    private void setupEdgeToEdgeApi23(Window window, View decorView, int colorPrimaryDark) {
-        window.setDecorFitsSystemWindows(false);
-        window.setStatusBarColor(colorPrimaryDark);
-        window.setNavigationBarColor(colorPrimaryDark);
-
-        int flags = decorView.getSystemUiVisibility();
-        flags &= ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
-        decorView.setSystemUiVisibility(flags);
-    }
-
-    private void setupEdgeToEdgeApi21(Window window, View decorView, int colorPrimaryDark) {
-        window.setDecorFitsSystemWindows(false);
-        window.setStatusBarColor(colorPrimaryDark);
-        window.setNavigationBarColor(colorPrimaryDark);
-    }
 }

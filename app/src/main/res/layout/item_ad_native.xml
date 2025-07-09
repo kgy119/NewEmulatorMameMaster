@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/ad_container"
+<com.google.android.gms.ads.nativead.NativeAdView
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
@@ -9,32 +9,39 @@
     android:layout_margin="4dp"
     android:gravity="center">
 
-    <!-- 광고 이미지 -->
-    <ImageView
-        android:id="@+id/ad_image"
-        android:layout_width="120dp"
-        android:layout_height="120dp"
-        android:scaleType="centerCrop"
-        android:background="@drawable/game_image_background" />
+    <!-- 광고 미디어/이미지 -->
+    <FrameLayout
+        android:layout_width="140dp"
+        android:layout_height="100dp">
 
-    <!-- AD 라벨 -->
-    <TextView
-        android:id="@+id/ad_label"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="AD"
-        android:textColor="@color/colorAccent"
-        android:textSize="8sp"
-        android:textStyle="bold"
-        android:background="@color/colorPrimary"
-        android:paddingHorizontal="4dp"
-        android:paddingVertical="1dp"
-        android:layout_marginTop="2dp" />
+        <!-- 미디어 콘텐츠 -->
+        <com.google.android.gms.ads.nativead.MediaView
+            android:id="@+id/ad_media"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            android:background="@drawable/game_image_background" />
+
+        <!-- 광고 라벨 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|end"
+            android:layout_margin="4dp"
+            android:background="@android:color/holo_orange_dark"
+            android:text="AD"
+            android:textColor="@android:color/white"
+            android:textSize="8sp"
+            android:textStyle="bold"
+            android:paddingHorizontal="4dp"
+            android:paddingVertical="1dp" />
+
+    </FrameLayout>
 
     <!-- 광고 제목 -->
     <TextView
-        android:id="@+id/ad_title"
-        android:layout_width="120dp"
+        android:id="@+id/ad_headline"
+        android:layout_width="140dp"
         android:layout_height="wrap_content"
         android:textColor="@color/white"
         android:textSize="12sp"
@@ -42,7 +49,45 @@
         android:gravity="center"
         android:ellipsize="end"
         android:maxLines="2"
-        android:layout_marginTop="4dp"
+        android:layout_marginTop="8dp"
         android:text="광고 제목" />
 
-</LinearLayout>
+    <!-- 숨겨진 광고 요소들 (AdMob 요구사항을 위해 포함하되 보이지 않게 함) -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/ad_body"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+        <TextView
+            android:id="@+id/ad_advertiser"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+        <RatingBar
+            android:id="@+id/ad_stars"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+        <TextView
+            android:id="@+id/ad_price"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+        <Button
+            android:id="@+id/ad_call_to_action"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+        <ImageView
+            android:id="@+id/ad_app_icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+    </LinearLayout>
+
+</com.google.android.gms.ads.nativead.NativeAdView>

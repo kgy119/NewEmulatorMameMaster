@@ -264,7 +264,7 @@ public class GameAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                     nativeAdView.setHeadlineView(adHeadline);
                 } else {
                     Log.d(TAG, "광고 제목이 없어 기본값 설정");
-                    adHeadline.setText("광고");
+//                    adHeadline.setText("광고");
                     nativeAdView.setHeadlineView(adHeadline);
                 }
 

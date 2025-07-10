@@ -470,11 +470,4 @@ public class GameAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         return -1;
     }
 
-    // 메모리 누수 방지를 위한 정리 메서드
-    public void cleanup() {
-        if (gameList != null) {
-            gameList.clear();
-        }
-        onGameClickListener = null;
-    }
 }

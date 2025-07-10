@@ -77,30 +77,6 @@ public class SplashActivity extends Activity {
         startSplashTimer();
     }
 
-    private boolean checkNetworkConnection() {
-        if (!utilHelper.isNetworkConnected()) {
-            Log.w(TAG, "No internet connection detected");
-            showNetworkErrorDialog();
-            return false;
-        }
-
-        Log.d(TAG, "Internet connection verified");
-        return true;
-    }
-
-    private void showNetworkErrorDialog() {
-        new AlertDialog.Builder(this)
-                .setTitle("No Internet Connection")
-                .setMessage("This app requires an internet connection to function properly. Please check your network settings and try again.")
-                .setPositiveButton("OK", (dialog, which) -> {
-                    Log.d(TAG, "Network error dialog dismissed - closing app");
-                    finish();
-                    System.exit(0);
-                })
-                .setCancelable(false)
-                .show();
-    }
-
     private void initViews() {
         appIcon = findViewById(R.id.app_icon);
         copyrightText = findViewById(R.id.copyright_text);

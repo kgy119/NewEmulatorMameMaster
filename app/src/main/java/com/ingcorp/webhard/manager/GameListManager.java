@@ -18,7 +18,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class GameListManager {
-    private static final String TAG = "GameListManager";
+    private static final String TAG = "mame00";
     private static final String PREFS_NAME = "game_list_prefs";
     private static final String KEY_GAME_LIST_VERSION = "game_list_version";
 
@@ -80,6 +80,7 @@ public class GameListManager {
                     GameListResponse gameListResponse = response.body();
 
                     if ("0000".equals(gameListResponse.getResultCode())) {
+                        Log.e(TAG, "response.isSuccessful: " + response.body());
                         // 백그라운드에서 데이터베이스 작업 수행 (Executor 사용)
                         saveGameListToDatabase(gameListResponse, newVersion, listener);
                     } else {

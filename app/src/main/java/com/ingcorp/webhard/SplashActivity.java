@@ -32,7 +32,7 @@ import retrofit2.Response;
 
 public class SplashActivity extends Activity {
 
-    private static final String TAG = "DEBUGMAME";
+    private static final String TAG = "mame00";
     private static final int SPLASH_DURATION = 3000; // 3초
 
     private boolean isVersionCheckCompleted = false;
@@ -218,15 +218,18 @@ public class SplashActivity extends Activity {
         }
     }
 
+    // SplashActivity.java의 saveAdSettingsFromServer 메서드 수정
+
     private void saveAdSettingsFromServer(VersionResponse.Root root) {
         try {
             // 서버에서 받은 광고 설정 값들을 가져와서 저장
             boolean adBannerUse = root.isAdBannerUse(); // 배너 광고 사용 여부
             int adFullCnt = root.getAdFullCnt(); // 전면 광고 주기
             int adFullCoinCnt = root.getAdFullCoinCnt(); // 전면 광고 코인 개수
+            int adNativeCnt = root.getAdNativeCnt(); // 네이티브 광고 주기
 
             // UtilHelper를 통해 광고 설정 저장
-            utilHelper.saveAdSettings(adBannerUse, adFullCnt, adFullCoinCnt);
+            utilHelper.saveAdSettings(adBannerUse, adFullCnt, adFullCoinCnt, adNativeCnt);
 
             Log.d(TAG, "서버에서 받은 광고 설정 저장 완료");
             utilHelper.logAdSettings(); // 디버그용 로깅
@@ -234,7 +237,7 @@ public class SplashActivity extends Activity {
         } catch (Exception e) {
             Log.e(TAG, "광고 설정 저장 중 오류 발생: " + e.getMessage(), e);
             // 오류 발생 시 기본값으로 저장
-            utilHelper.saveAdSettings(true, 1, 5);
+            utilHelper.saveAdSettings(true, 1, 5, 10);
         }
     }
 

@@ -1,6 +1,7 @@
 package com.ingcorp.webhard.fragment;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,7 +13,11 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.ingcorp.webhard.R;
 import com.ingcorp.webhard.adapter.GameAdapter;
 import com.ingcorp.webhard.database.entity.Game;
+import com.ingcorp.webhard.helpers.UtilHelper;
 import com.ingcorp.webhard.manager.GameListManager;
+import com.ingcorp.webhard.model.AdItem;
+import com.ingcorp.webhard.model.BaseItem;
+import com.ingcorp.webhard.model.GameItem;
 import com.ingcorp.webhard.network.ApiService;
 import com.ingcorp.webhard.network.NetworkClient;
 import com.ingcorp.webhard.MAME4droid;
@@ -22,6 +27,7 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import okhttp3.ResponseBody;
 import retrofit2.Call;
@@ -35,10 +41,11 @@ public class GameFragment extends Fragment {
     private GameListManager gameListManager;
     private RecyclerView recyclerView;
     private GameAdapter gameAdapter;
-    private List<Game> gameList;
+    private List<BaseItem> itemList; // Game 대신 BaseItem 사용
     private View loadingView;
     private View emptyView;
     private boolean isDataLoaded = false;
+    private UtilHelper utilHelper;
 
     public static GameFragment newInstance(int position, GameListManager gameListManager) {
         GameFragment fragment = new GameFragment();
@@ -55,6 +62,9 @@ public class GameFragment extends Fragment {
 
         int position = getArguments() != null ? getArguments().getInt(ARG_POSITION, 0) : 0;
 
+        // UtilHelper 초기화
+        utilHelper = UtilHelper.getInstance(getContext());
+
         initViews(view);
         setupRecyclerView();
         loadGames(position);
@@ -70,10 +80,20 @@ public class GameFragment extends Fragment {
 
     private void setupRecyclerView() {
         GridLayoutManager gridLayoutManager = new GridLayoutManager(getContext(), 2);
+
+        // 광고와 게임 모두 같은 크기(1칸)로 설정
+        gridLayoutManager.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
+            @Override
+            public int getSpanSize(int position) {
+                // 광고와 게임 모두 1칸씩 차지
+                return 1;
+            }
+        });
+
         recyclerView.setLayoutManager(gridLayoutManager);
 
-        gameList = new ArrayList<>();
-        gameAdapter = new GameAdapter(gameList, getContext());
+        itemList = new ArrayList<>();
+        gameAdapter = new GameAdapter(itemList, getContext()); // 수정된 어댑터
 
         gameAdapter.setOnGameClickListener(new GameAdapter.OnGameClickListener() {
             @Override
@@ -89,6 +109,7 @@ public class GameFragment extends Fragment {
 
         recyclerView.setAdapter(gameAdapter);
     }
+
 
     private void loadGames(int position) {
         if (isDataLoaded) return;
@@ -108,16 +129,18 @@ public class GameFragment extends Fragment {
 
     private void updateGameList(List<Game> games) {
         if (games != null && !games.isEmpty()) {
-            gameList.clear();
-            gameList.addAll(games);
-            gameAdapter.notifyDataSetChanged();
+            // 게임 리스트에 네이티브 광고를 삽입하여 통합 리스트 생성
+            List<BaseItem> newItemList = createUnifiedListWithAds(games);
+
+            // 어댑터의 updateItemList 메서드 사용
+            gameAdapter.updateItemList(newItemList);
 
             recyclerView.setVisibility(View.VISIBLE);
             if (loadingView != null) loadingView.setVisibility(View.GONE);
             if (emptyView != null) emptyView.setVisibility(View.GONE);
         } else {
-            gameList.clear();
-            if (gameAdapter != null) gameAdapter.notifyDataSetChanged();
+            // 빈 리스트로 업데이트
+            gameAdapter.updateItemList(new ArrayList<>());
 
             recyclerView.setVisibility(View.GONE);
             if (loadingView != null) loadingView.setVisibility(View.GONE);
@@ -125,6 +148,76 @@ public class GameFragment extends Fragment {
         }
     }
 
+    /**
+     * 게임 리스트에 네이티브 광고를 삽입하여 통합 리스트를 생성
+     */
+    private List<BaseItem> createUnifiedListWithAds(List<Game> games) {
+        List<BaseItem> unifiedList = new ArrayList<>();
+
+        // 네이티브 광고 주기 가져오기
+        int adNativeCnt = utilHelper.getAdNativeCount();
+
+        Log.d("GameFragment", "=== 통합 리스트 생성 시작 ===");
+        Log.d("GameFragment", "게임 수: " + games.size());
+        Log.d("GameFragment", "광고 주기: " + adNativeCnt);
+
+        if (adNativeCnt <= 0 || games.size() < 3) {
+            // 광고 주기가 0 이하이거나 게임이 3개 미만이면 광고 없이 게임만 추가
+            for (Game game : games) {
+                unifiedList.add(new GameItem(game));
+            }
+            Log.d("GameFragment", "광고 없이 게임만 추가 (게임: " + games.size() + "개)");
+            return unifiedList;
+        }
+
+        Random random = new Random();
+
+        for (int startIdx = 0; startIdx < games.size(); startIdx += adNativeCnt) {
+            int endIdx = Math.min(startIdx + adNativeCnt, games.size());
+
+            // 현재 그룹의 게임들을 추가
+            List<Game> currentGroup = games.subList(startIdx, endIdx);
+
+            // 광고를 삽입할 랜덤 위치 계산 (첫번째, 마지막 제외)
+            int groupSize = currentGroup.size();
+            int adInsertPosition = -1;
+
+            if (groupSize >= 3) {
+                // 1부터 groupSize-2 사이의 랜덤 위치 (첫번째=0, 마지막=groupSize-1 제외)
+                adInsertPosition = 1 + random.nextInt(groupSize - 2);
+            }
+
+            Log.d("GameFragment", "그룹 [" + startIdx + "-" + (endIdx-1) + "], 크기: " + groupSize +
+                    ", 광고 삽입 위치: " + adInsertPosition);
+
+            // 그룹의 게임들을 순서대로 추가하면서 중간에 광고 삽입
+            for (int i = 0; i < currentGroup.size(); i++) {
+                // 광고 삽입 위치에 도달하면 광고 먼저 추가
+                if (i == adInsertPosition) {
+                    unifiedList.add(new AdItem());
+                    Log.d("GameFragment", "위치 " + unifiedList.size() + "에 광고 삽입");
+                }
+
+                // 게임 추가
+                unifiedList.add(new GameItem(currentGroup.get(i)));
+            }
+        }
+
+        Log.d("GameFragment", "최종 통합 리스트 크기: " + unifiedList.size());
+
+        // 디버그: 리스트 구성 출력
+        for (int i = 0; i < unifiedList.size(); i++) {
+            BaseItem item = unifiedList.get(i);
+            String type = item.getItemType() == BaseItem.TYPE_AD ? "광고" : "게임";
+            Log.d("GameFragment", "위치 " + i + ": " + type);
+        }
+
+        Log.d("GameFragment", "=========================");
+
+        return unifiedList;
+    }
+
+    // 나머지 메서드들은 동일...
     private void showLoading(boolean show) {
         if (show) {
             recyclerView.setVisibility(View.GONE);
@@ -144,6 +237,7 @@ public class GameFragment extends Fragment {
                     .show();
         }
     }
+
 
     private void checkRomAndLaunchGame(Game game) {
         if (getContext() == null) return;

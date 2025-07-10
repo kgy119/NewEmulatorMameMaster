@@ -45,28 +45,15 @@ public class MainActivity extends FragmentActivity {
         gameListManager = new GameListManager(this);
         setContentView(R.layout.activity_main);
 
-        // AdMobManager 초기화
+        // AdMobManager 인스턴스 가져오기
         adMobManager = AdMobManager.getInstance(this);
-
-        // AdMob 초기화 (앱 시작 시 한 번만)
-        adMobManager.initialize(new AdMobManager.OnAdMobInitializedListener() {
-            @Override
-            public void onInitialized(boolean success) {
-                if (success) {
-                    Log.d(TAG, "AdMob 초기화 성공 - 광고를 로드할 준비가 완료됨");
-                    // 어댑터가 이미 생성되어 있다면 갱신
-                    refreshAdapterIfNeeded();
-                    // 초기화 완료 후 배너 광고 로드
-                    loadCollapsibleBanner();
-                } else {
-                    Log.e(TAG, "AdMob 초기화 실패 - 광고가 표시되지 않음");
-                }
-            }
-        });
 
         initViews();
         createTabs();
         setupViewPager();
+
+        // 배너 광고 로드 (AppBaseApplication에서 이미 초기화됨)
+        loadCollapsibleBanner();
     }
 
     private void initViews() {
@@ -155,13 +142,6 @@ public class MainActivity extends FragmentActivity {
             View selectedTabContainer = (View) selectedTabText.getParent();
             int scrollX = selectedTabContainer.getLeft() - (tabScrollView.getWidth() / 2) + (selectedTabContainer.getWidth() / 2);
             tabScrollView.smoothScrollTo(Math.max(0, scrollX), 0);
-        }
-    }
-
-    private void refreshAdapterIfNeeded() {
-        // RecyclerView 어댑터가 있다면 갱신하여 광고 로드
-        if (gameAdapter != null) {
-            gameAdapter.notifyDataSetChanged();
         }
     }
 

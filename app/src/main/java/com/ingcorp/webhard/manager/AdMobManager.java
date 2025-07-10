@@ -15,9 +15,6 @@ import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdSize;
 import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.LoadAdError;
-import com.google.android.gms.ads.MobileAds;
-import com.google.android.gms.ads.initialization.InitializationStatus;
-import com.google.android.gms.ads.initialization.OnInitializationCompleteListener;
 import com.google.android.gms.ads.nativead.NativeAd;
 import com.google.android.gms.ads.nativead.NativeAdOptions;
 import com.ingcorp.webhard.R;
@@ -27,8 +24,6 @@ import androidx.annotation.NonNull;
 public class AdMobManager {
     private static final String TAG = "AdMobManager";
     private static AdMobManager instance;
-    private static boolean isInitialized = false;
-    private static boolean isInitializing = false;
 
     private Context context;
     private AdView mBannerAdView;
@@ -44,78 +39,8 @@ public class AdMobManager {
         return instance;
     }
 
-    /// AdMob 초기화
-    public void initialize(OnAdMobInitializedListener listener) {
-        if (isInitialized) {
-            Log.d(TAG, "AdMob이 이미 초기화됨");
-            if (listener != null) {
-                listener.onInitialized(true);
-            }
-            return;
-        }
-
-        if (isInitializing) {
-            Log.d(TAG, "AdMob 초기화가 이미 진행 중");
-            return;
-        }
-
-        isInitializing = true;
-        Log.d(TAG, "AdMob 초기화 시작");
-
-        try {
-            MobileAds.initialize(context, new OnInitializationCompleteListener() {
-                @Override
-                public void onInitializationComplete(InitializationStatus initializationStatus) {
-                    isInitialized = true;
-                    isInitializing = false;
-                    Log.d(TAG, "AdMob 초기화 성공!");
-                    Log.d(TAG, "초기화 상태: " + initializationStatus.toString());
-
-                    if (listener != null) {
-                        listener.onInitialized(true);
-                    }
-                }
-            });
-
-            // 타임아웃 처리 (10초)
-            new android.os.Handler().postDelayed(() -> {
-                if (!isInitialized && isInitializing) {
-                    isInitializing = false;
-                    Log.e(TAG, "AdMob 초기화 타임아웃");
-                    Log.e(TAG, "AndroidManifest.xml 설정을 확인하세요:");
-                    Log.e(TAG, "1. INTERNET 권한");
-                    Log.e(TAG, "2. APPLICATION_ID 메타데이터");
-
-                    if (listener != null) {
-                        listener.onInitialized(false);
-                    }
-                }
-            }, 10000);
-
-        } catch (Exception e) {
-            isInitializing = false;
-            Log.e(TAG, "AdMob 초기화 중 예외 발생: " + e.getMessage(), e);
-            if (listener != null) {
-                listener.onInitialized(false);
-            }
-        }
-    }
-
-    /// AdMob 초기화 상태 확인
-    public boolean isInitialized() {
-        return isInitialized;
-    }
-
     /// 접을 수 있는 배너 광고 로드
     public void loadCollapsibleBanner(Context activityContext, FrameLayout adContainerView, OnBannerAdLoadedListener listener) {
-        if (!isInitialized) {
-            Log.w(TAG, "AdMob이 초기화되지 않음. 배너 광고 로드 실패");
-            if (listener != null) {
-                listener.onAdLoadFailed("AdMob이 초기화되지 않음");
-            }
-            return;
-        }
-
         Log.d(TAG, "접을 수 있는 배너 광고 로드 시작");
 
         try {
@@ -247,14 +172,6 @@ public class AdMobManager {
 
     /// 네이티브 광고 로드
     public void loadNativeAd(OnNativeAdLoadedListener listener) {
-        if (!isInitialized) {
-            Log.w(TAG, "AdMob이 초기화되지 않음. 광고 로드 실패");
-            if (listener != null) {
-                listener.onAdLoadFailed("AdMob이 초기화되지 않음");
-            }
-            return;
-        }
-
         Log.d(TAG, "네이티브 광고 로드 시작");
 
         try {
@@ -342,13 +259,6 @@ public class AdMobManager {
             default:
                 return "알 수 없는 오류 (코드: " + errorCode + ")";
         }
-    }
-
-    /**
-     * AdMob 초기화 완료 리스너
-     */
-    public interface OnAdMobInitializedListener {
-        void onInitialized(boolean success);
     }
 
     /// 배너 광고 로드 리스너

@@ -7,6 +7,7 @@ import android.os.Looper;
 import android.util.Log;
 import com.ingcorp.webhard.database.GameDatabase;
 import com.ingcorp.webhard.database.entity.Game;
+import com.ingcorp.webhard.helpers.UtilHelper;
 import com.ingcorp.webhard.model.GameListResponse;
 import com.ingcorp.webhard.network.NetworkClient;
 import retrofit2.Call;
@@ -27,6 +28,8 @@ public class GameListManager {
     private SharedPreferences preferences;
     private ExecutorService executorService;
     private Handler mainHandler;
+    private UtilHelper utilHelper;
+
 
     public interface GameListUpdateListener {
         void onUpdateStarted();
@@ -40,13 +43,7 @@ public class GameListManager {
         this.preferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         this.executorService = Executors.newSingleThreadExecutor();
         this.mainHandler = new Handler(Looper.getMainLooper());
-    }
-
-    /**
-     * 현재 저장된 게임리스트 버전 가져오기
-     */
-    public int getCurrentGameListVersion() {
-        return preferences.getInt(KEY_GAME_LIST_VERSION, 0);
+        this.utilHelper = UtilHelper.getInstance(context);
     }
 
     /**
@@ -60,10 +57,14 @@ public class GameListManager {
      * 게임리스트 업데이트 필요성 체크
      */
     public boolean needsUpdate(int serverVersion) {
-        int currentVersion = getCurrentGameListVersion();
-        Log.d(TAG, "Current version: " + currentVersion + ", Server version: " + serverVersion);
-        return currentVersion != serverVersion;
+        int savedVersion = utilHelper.getSavedGameListVersion();
+        return serverVersion != savedVersion;
     }
+
+    public int getCurrentGameListVersion() {
+        return utilHelper.getSavedGameListVersion();
+    }
+
 
     /**
      * 게임리스트 업데이트 수행 (Retrofit 콜백 사용)
@@ -82,7 +83,29 @@ public class GameListManager {
                     if ("0000".equals(gameListResponse.getResultCode())) {
                         Log.e(TAG, "response.isSuccessful: " + response.body());
                         // 백그라운드에서 데이터베이스 작업 수행 (Executor 사용)
-                        saveGameListToDatabase(gameListResponse, newVersion, listener);
+                        saveGameListToDatabase(gameListResponse, newVersion, new GameListUpdateListener() {
+                            @Override
+                            public void onUpdateStarted() {
+                                // 생략 가능
+                            }
+
+                            @Override
+                            public void onUpdateCompleted() {
+                                // ✅ 게임 리스트 업데이트 성공 시 버전 저장
+                                UtilHelper.getInstance(context).saveGameListVersion(newVersion);
+                                if (listener != null) {
+                                    listener.onUpdateCompleted();
+                                }
+                            }
+
+                            @Override
+                            public void onUpdateFailed(String error) {
+                                if (listener != null) {
+                                    listener.onUpdateFailed(error);
+                                }
+                            }
+                        });
+
                     } else {
                         Log.e(TAG, "Server returned error code: " + gameListResponse.getResultCode());
                         if (listener != null) {
@@ -106,6 +129,7 @@ public class GameListManager {
             }
         });
     }
+
 
     /**
      * 게임리스트를 데이터베이스에 저장 (Executor 사용)

@@ -23,6 +23,7 @@ public class UtilHelper {
     private static final String TAG = "UtilHelper";
     private static final String PREF_NAME = "WebHardPrefs";
 
+
     private Context context;
     private static UtilHelper instance;
 
@@ -436,7 +437,18 @@ public class UtilHelper {
     private static final String AD_FULL_COIN_CNT_KEY = "ad_full_coin_cnt";
     private static final String GAME_CLICK_COUNT_KEY = "game_click_count";
     private static final String AD_NATIVE_CNT_KEY = "ad_native_cnt";
+    private static final String KEY_GAME_LIST_VERSION = "game_list_version";
 
+
+    // 게임 리스트 버전 저장
+    public void saveGameListVersion(int version) {
+        saveIntPreference(KEY_GAME_LIST_VERSION, version);
+    }
+
+    // 저장된 게임 리스트 버전 가져오기
+    public int getSavedGameListVersion() {
+        return getIntPreference(KEY_GAME_LIST_VERSION, 0); // 기본값 0
+    }
 
     // 광고 설정 저장
     public void saveAdSettings(boolean adBannerUse, int adFullCnt, int adFullCoinCnt, int adNativeCnt) {

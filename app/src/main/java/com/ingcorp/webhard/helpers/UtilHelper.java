@@ -435,19 +435,29 @@ public class UtilHelper {
     private static final String AD_FULL_CNT_KEY = "ad_full_cnt";
     private static final String AD_FULL_COIN_CNT_KEY = "ad_full_coin_cnt";
     private static final String GAME_CLICK_COUNT_KEY = "game_click_count";
+    private static final String AD_NATIVE_CNT_KEY = "ad_native_cnt";
+
 
     // 광고 설정 저장
-    public void saveAdSettings(boolean adBannerUse, int adFullCnt, int adFullCoinCnt) {
+    public void saveAdSettings(boolean adBannerUse, int adFullCnt, int adFullCoinCnt, int adNativeCnt) {
         SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
 
         editor.putBoolean(AD_BANNER_USE_KEY, adBannerUse);
         editor.putInt(AD_FULL_CNT_KEY, adFullCnt);
         editor.putInt(AD_FULL_COIN_CNT_KEY, adFullCoinCnt);
+        editor.putInt(AD_NATIVE_CNT_KEY, adNativeCnt);
         editor.apply();
 
-        Log.d(TAG, "광고 설정 저장됨 - 배너: " + adBannerUse + ", 전면: " + adFullCnt + ", 코인: " + adFullCoinCnt);
+        Log.d(TAG, "광고 설정 저장됨 - 배너: " + adBannerUse + ", 전면: " + adFullCnt +
+                ", 코인: " + adFullCoinCnt + ", 네이티브: " + adNativeCnt);
     }
+
+    public int getAdNativeCount() {
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        return prefs.getInt(AD_NATIVE_CNT_KEY, 10); // 기본값: 10
+    }
+
 
     // 배너 광고 사용 여부 확인
     public boolean isAdBannerEnabled() {
@@ -512,6 +522,7 @@ public class UtilHelper {
         Log.d(TAG, "배너 광고 사용: " + (isAdBannerEnabled() ? "예" : "아니오"));
         Log.d(TAG, "전면 광고 주기: " + getAdFullCount());
         Log.d(TAG, "전면 광고 코인: " + getAdFullCoinCount());
+        Log.d(TAG, "네이티브 광고 주기: " + getAdNativeCount());
         Log.d(TAG, "현재 게임 클릭 수: " + getGameClickCount());
         Log.d(TAG, "==================");
     }

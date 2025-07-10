@@ -38,6 +38,9 @@ public class VersionResponse {
         @SerializedName("adFullCoinCnt")
         private int adFullCoinCnt;
 
+        @SerializedName("adNativeCnt")
+        private int adNativeCnt;
+
         // 기존 getter/setter들
         public boolean isCheck() {
             return check;
@@ -96,6 +99,14 @@ public class VersionResponse {
             this.adFullCoinCnt = adFullCoinCnt;
         }
 
+        public int getAdNativeCnt() {
+            return adNativeCnt;
+        }
+
+        public void setAdNativeCnt(int adNativeCnt) {
+            this.adNativeCnt = adNativeCnt;
+        }
+
         @Override
         public String toString() {
             return "Root{" +
@@ -106,6 +117,7 @@ public class VersionResponse {
                     ", adBannerUse=" + adBannerUse +
                     ", adFullCnt=" + adFullCnt +
                     ", adFullCoinCnt=" + adFullCoinCnt +
+                    ", adNativeCnt=" + adNativeCnt +
                     '}';
         }
     }

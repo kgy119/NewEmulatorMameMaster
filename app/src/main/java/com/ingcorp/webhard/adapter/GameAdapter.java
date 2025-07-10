@@ -23,17 +23,19 @@ import com.ingcorp.webhard.R;
 import com.ingcorp.webhard.database.entity.Game;
 import com.ingcorp.webhard.manager.AdMobManager;
 import com.ingcorp.webhard.helpers.UtilHelper;
+import com.ingcorp.webhard.model.BaseItem;
+import com.ingcorp.webhard.model.GameItem;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 
 public class GameAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
-    private static final String TAG = "mame00";
+    private static final String TAG = "GameAdapter";
     private static final String BASE_IMAGE_URL = "http://retrogamemaster.net";
-    private static final int TYPE_GAME = 0;
-    private static final int TYPE_AD = 1;
-    private static final int AD_FREQUENCY = 6; // 6개마다 광고 삽입
 
-    private List<Game> gameList;
+    private List<BaseItem> itemList; // 통합 리스트
     private Context context;
     private OnGameClickListener onGameClickListener;
     private AdMobManager adMobManager;
@@ -44,11 +46,13 @@ public class GameAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         void onGameLongClick(Game game);
     }
 
-    public GameAdapter(List<Game> gameList, Context context) {
-        this.gameList = gameList;
+    public GameAdapter(List<BaseItem> itemList, Context context) {
+        this.itemList = itemList != null ? itemList : new ArrayList<>();
         this.context = context;
         this.adMobManager = AdMobManager.getInstance(context);
         this.utilHelper = UtilHelper.getInstance(context);
+
+        Log.d(TAG, "GameAdapter 생성 - 아이템 수: " + this.itemList.size());
 
         // 전면광고 미리 로드
         loadInterstitialAdIfNeeded();
@@ -58,78 +62,28 @@ public class GameAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         this.onGameClickListener = listener;
     }
 
-    private void loadInterstitialAdIfNeeded() {
-        if (adMobManager != null && !adMobManager.isInterstitialAdReady()) {
-            Log.d(TAG, "전면광고 미리 로드 시작");
-            adMobManager.loadInterstitialAd(new AdMobManager.OnInterstitialAdLoadedListener() {
-                @Override
-                public void onAdLoaded() {
-                    Log.d(TAG, "전면광고 미리 로드 완료");
-                }
-
-                @Override
-                public void onAdLoadFailed(String error) {
-                    Log.e(TAG, "전면광고 미리 로드 실패: " + error);
-                }
-
-                @Override
-                public void onAdClosed() {
-                    // 광고 닫힘 후 자동으로 다음 광고 로드됨
-                }
-
-                @Override
-                public void onAdShown() {
-                    // 광고 표시됨
-                }
-
-                @Override
-                public void onAdShowFailed(String error) {
-                    Log.e(TAG, "전면광고 표시 실패: " + error);
-                }
-            });
-        }
-    }
-
     @Override
     public int getItemViewType(int position) {
-        // 첫 번째 아이템은 항상 광고
-        if (position == 0) {
-            return TYPE_AD;
+        if (position >= 0 && position < itemList.size()) {
+            return itemList.get(position).getItemType();
         }
-        // 그 이후부터는 AD_FREQUENCY 간격으로 광고 삽입
-        else if ((position) % (AD_FREQUENCY + 1) == 0) {
-            return TYPE_AD;
-        }
-        return TYPE_GAME;
+        return BaseItem.TYPE_GAME; // 기본값
     }
 
     @Override
     public int getItemCount() {
-        if (gameList == null || gameList.isEmpty()) return 0;
-        // 게임 수 + 광고 수 계산
-        int adCount = gameList.size() / AD_FREQUENCY;
-        return gameList.size() + adCount;
-    }
-
-    private int getGamePosition(int adapterPosition) {
-        // 첫 번째는 광고이므로 게임 위치 계산 시 1을 빼고 시작
-        if (adapterPosition == 0) {
-            return -1; // 첫 번째는 광고이므로 게임이 아님
-        }
-
-        // 광고를 제외한 실제 게임 위치 계산
-        int adjustedPosition = adapterPosition - 1; // 첫 번째 광고 제외
-        int adCount = adjustedPosition / AD_FREQUENCY; // 추가 광고 개수
-        return adjustedPosition - adCount;
+        return itemList.size();
     }
 
     @NonNull
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        if (viewType == TYPE_AD) {
+        if (viewType == BaseItem.TYPE_AD) {
+            Log.d(TAG, "네이티브 광고 ViewHolder 생성");
             View view = LayoutInflater.from(context).inflate(R.layout.item_ad_native, parent, false);
             return new AdViewHolder(view);
         } else {
+            Log.v(TAG, "게임 ViewHolder 생성");
             View view = LayoutInflater.from(context).inflate(R.layout.item_game, parent, false);
             return new GameViewHolder(view);
         }
@@ -137,17 +91,24 @@ public class GameAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
-        if (getItemViewType(position) == TYPE_AD) {
+        if (position >= itemList.size()) {
+            Log.e(TAG, "잘못된 위치: " + position + " (최대: " + (itemList.size() - 1) + ")");
+            return;
+        }
+
+        BaseItem item = itemList.get(position);
+
+        if (item.getItemType() == BaseItem.TYPE_AD) {
+            Log.d(TAG, "위치 " + position + "에 네이티브 광고 바인딩");
             ((AdViewHolder) holder).loadAd();
-        } else {
-            int gamePosition = getGamePosition(position);
-            if (gamePosition >= 0 && gamePosition < gameList.size()) {
-                ((GameViewHolder) holder).bind(gameList.get(gamePosition));
-            }
+        } else if (item.getItemType() == BaseItem.TYPE_GAME) {
+            GameItem gameItem = (GameItem) item;
+            Log.v(TAG, "위치 " + position + "에 게임 바인딩: " + gameItem.getGame().getGameName());
+            ((GameViewHolder) holder).bind(gameItem.getGame());
         }
     }
 
-    // 게임 ViewHolder
+    // 게임 ViewHolder - 기존과 동일
     public class GameViewHolder extends RecyclerView.ViewHolder {
         private ImageView gameImage;
         private TextView gameNameText;
@@ -166,8 +127,6 @@ public class GameAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             gameNameText.setText(game.getGameName());
             loadGameImage(game);
 
-            // GameViewHolder의 bind 메서드 내 itemContainer.setOnClickListener 부분만 수정
-
             itemContainer.setOnClickListener(v -> {
                 Log.d(TAG, "게임 클릭: " + game.getGameName());
 
@@ -175,11 +134,10 @@ public class GameAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 if (!utilHelper.isNetworkConnected()) {
                     Log.w(TAG, "인터넷 연결 없음 - 경고창 표시");
                     utilHelper.showGameNetworkErrorDialog((android.app.Activity) context);
-                    return; // 인터넷 연결이 없으면 여기서 종료
+                    return;
                 }
 
-                // 인터넷 연결이 있으면 기존 로직 실행
-                // 전면 광고 표시 여부 확인 (클릭 수 증가 포함)
+                // 전면 광고 표시 여부 확인
                 boolean shouldShowAd = utilHelper.shouldShowInterstitialAd();
 
                 if (shouldShowAd && adMobManager != null && adMobManager.isInterstitialAdReady()) {
@@ -193,7 +151,6 @@ public class GameAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                         @Override
                         public void onAdClosed() {
                             Log.d(TAG, "전면광고 닫힘 - 게임 실행");
-                            // 광고가 닫힌 후 게임 실행
                             if (onGameClickListener != null) {
                                 onGameClickListener.onGameClick(game);
                             }
@@ -202,7 +159,6 @@ public class GameAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                         @Override
                         public void onAdShowFailed(String error) {
                             Log.e(TAG, "전면광고 표시 실패: " + error + " - 바로 게임 실행");
-                            // 광고 표시 실패 시 바로 게임 실행
                             if (onGameClickListener != null) {
                                 onGameClickListener.onGameClick(game);
                             }
@@ -211,7 +167,6 @@ public class GameAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                         @Override
                         public void onAdNotReady() {
                             Log.w(TAG, "전면광고가 준비되지 않음 - 바로 게임 실행");
-                            // 광고가 준비되지 않았으면 바로 게임 실행
                             if (onGameClickListener != null) {
                                 onGameClickListener.onGameClick(game);
                             }
@@ -219,12 +174,9 @@ public class GameAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                     });
                 } else {
                     Log.d(TAG, "전면광고 표시 조건 불만족 또는 광고 준비 안됨 - 바로 게임 실행");
-                    // 광고 표시 조건이 안되거나 준비되지 않았으면 바로 게임 실행
                     if (onGameClickListener != null) {
                         onGameClickListener.onGameClick(game);
                     }
-
-                    // 다음을 위해 전면광고 로드 시도
                     loadInterstitialAdIfNeeded();
                 }
             });
@@ -287,13 +239,11 @@ public class GameAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         }
     }
 
-    // 네이티브 광고 ViewHolder (게임 포맷과 유사하게)
+    // 네이티브 광고 ViewHolder - 기존과 동일
     public class AdViewHolder extends RecyclerView.ViewHolder {
         private NativeAdView nativeAdView;
         private MediaView mediaView;
         private TextView adHeadline;
-
-        // 숨겨진 필수 요소들 (AdMob 요구사항)
         private TextView adBody;
         private TextView adAdvertiser;
         private RatingBar adStars;
@@ -306,11 +256,8 @@ public class GameAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             super(itemView);
             nativeAdView = (NativeAdView) itemView;
 
-            // 주요 표시 요소들
             mediaView = nativeAdView.findViewById(R.id.ad_media);
             adHeadline = nativeAdView.findViewById(R.id.ad_headline);
-
-            // 숨겨진 필수 요소들 (AdMob 정책 준수)
             adBody = nativeAdView.findViewById(R.id.ad_body);
             adAdvertiser = nativeAdView.findViewById(R.id.ad_advertiser);
             adStars = nativeAdView.findViewById(R.id.ad_stars);
@@ -322,17 +269,16 @@ public class GameAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         public void loadAd() {
             Log.d(TAG, "광고 로드 시작 - 위치: " + getAdapterPosition());
 
-            // 기존 광고가 있다면 정리
             if (currentNativeAd != null) {
                 Log.d(TAG, "기존 광고 정리");
                 currentNativeAd.destroy();
                 currentNativeAd = null;
             }
 
-            // AdMob 매니저를 통해 광고 로드
             adMobManager.loadNativeAd(new AdMobManager.OnNativeAdLoadedListener() {
                 @Override
                 public void onAdLoaded(NativeAd nativeAd) {
+                    Log.d(TAG, "네이티브 광고 로드 성공!");
                     currentNativeAd = nativeAd;
                     populateNativeAdView(nativeAd);
                 }
@@ -349,67 +295,49 @@ public class GameAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             Log.d(TAG, "네이티브 광고 뷰 설정 시작");
 
             try {
-                // 광고 제목 설정 (게임 이름처럼 표시)
                 if (nativeAd.getHeadline() != null) {
-                    Log.d(TAG, "광고 제목 설정: " + nativeAd.getHeadline());
                     adHeadline.setText(nativeAd.getHeadline());
                     nativeAdView.setHeadlineView(adHeadline);
                 } else {
-                    Log.d(TAG, "광고 제목이 없어 기본값 설정");
-//                    adHeadline.setText("광고");
                     nativeAdView.setHeadlineView(adHeadline);
                 }
 
-                // 미디어 콘텐츠 설정 (게임 이미지처럼 표시)
                 if (nativeAd.getMediaContent() != null) {
-                    Log.d(TAG, "미디어 콘텐츠 설정");
                     mediaView.setMediaContent(nativeAd.getMediaContent());
                     nativeAdView.setMediaView(mediaView);
-                } else {
-                    Log.d(TAG, "미디어 콘텐츠 없음");
                 }
 
-                // 필수 요소들을 NativeAdView에 등록 (숨겨진 상태로)
                 if (nativeAd.getBody() != null && adBody != null) {
-                    Log.d(TAG, "광고 본문 설정: " + nativeAd.getBody());
                     adBody.setText(nativeAd.getBody());
                     nativeAdView.setBodyView(adBody);
                 }
 
                 if (nativeAd.getAdvertiser() != null && adAdvertiser != null) {
-                    Log.d(TAG, "광고주 설정: " + nativeAd.getAdvertiser());
                     adAdvertiser.setText(nativeAd.getAdvertiser());
                     nativeAdView.setAdvertiserView(adAdvertiser);
                 }
 
                 if (nativeAd.getStarRating() != null && adStars != null) {
-                    Log.d(TAG, "별점 설정: " + nativeAd.getStarRating());
                     adStars.setRating(nativeAd.getStarRating().floatValue());
                     nativeAdView.setStarRatingView(adStars);
                 }
 
                 if (nativeAd.getPrice() != null && adPrice != null) {
-                    Log.d(TAG, "가격 설정: " + nativeAd.getPrice());
                     adPrice.setText(nativeAd.getPrice());
                     nativeAdView.setPriceView(adPrice);
                 }
 
                 if (nativeAd.getCallToAction() != null && adCallToAction != null) {
-                    Log.d(TAG, "행동 유도 버튼 설정: " + nativeAd.getCallToAction());
                     adCallToAction.setText(nativeAd.getCallToAction());
                     nativeAdView.setCallToActionView(adCallToAction);
                 }
 
                 if (nativeAd.getIcon() != null && adIcon != null) {
-                    Log.d(TAG, "아이콘 설정");
                     adIcon.setImageDrawable(nativeAd.getIcon().getDrawable());
                     nativeAdView.setIconView(adIcon);
                 }
 
-                // NativeAdView에 NativeAd 객체 등록 (중요!)
-                Log.d(TAG, "NativeAdView에 NativeAd 등록");
                 nativeAdView.setNativeAd(nativeAd);
-
                 Log.d(TAG, "네이티브 광고 뷰 설정 완료");
 
             } catch (Exception e) {
@@ -420,54 +348,51 @@ public class GameAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
         private void showDefaultAd() {
             Log.d(TAG, "기본 광고 표시");
-
-            // 광고 로드 실패 시 기본 표시 (게임 아이템과 유사하게)
             if (adHeadline != null) {
                 adHeadline.setText("광고");
-                Log.d(TAG, "기본 광고 제목 설정 완료");
-            }
-
-            // 미디어뷰에 기본 이미지 표시는 불가능하므로
-            // 광고 로드 실패 시에는 제목만 표시
-        }
-    }
-
-    // 데이터 업데이트 메서드들
-    public void updateGameList(List<Game> newGameList) {
-        if (newGameList != null) {
-            this.gameList.clear();
-            this.gameList.addAll(newGameList);
-            notifyDataSetChanged();
-        }
-    }
-
-    public void addGame(Game game) {
-        if (game != null && gameList != null) {
-            gameList.add(game);
-            notifyDataSetChanged(); // 광고 위치가 변경될 수 있으므로 전체 갱신
-        }
-    }
-
-    public void removeGame(int position) {
-        if (gameList != null) {
-            int gamePosition = getGamePosition(position);
-            if (gamePosition >= 0 && gamePosition < gameList.size()) {
-                gameList.remove(gamePosition);
-                notifyDataSetChanged(); // 광고 위치가 변경될 수 있으므로 전체 갱신
             }
         }
     }
 
-    public int findGamePosition(String gameId) {
-        if (gameId != null && gameList != null) {
-            for (int i = 0; i < gameList.size(); i++) {
-                Game game = gameList.get(i);
-                if (game != null && gameId.equals(game.getGameId())) {
-                    return i;
+    private void loadInterstitialAdIfNeeded() {
+        if (adMobManager != null && !adMobManager.isInterstitialAdReady()) {
+            Log.d(TAG, "전면광고 미리 로드 시작");
+            adMobManager.loadInterstitialAd(new AdMobManager.OnInterstitialAdLoadedListener() {
+                @Override
+                public void onAdLoaded() {
+                    Log.d(TAG, "전면광고 미리 로드 완료");
                 }
-            }
+
+                @Override
+                public void onAdLoadFailed(String error) {
+                    Log.e(TAG, "전면광고 미리 로드 실패: " + error);
+                }
+
+                @Override
+                public void onAdClosed() {
+                    // 광고 닫힘 후 자동으로 다음 광고 로드됨
+                }
+
+                @Override
+                public void onAdShown() {
+                    // 광고 표시됨
+                }
+
+                @Override
+                public void onAdShowFailed(String error) {
+                    Log.e(TAG, "전면광고 표시 실패: " + error);
+                }
+            });
         }
-        return -1;
     }
 
+    // 데이터 업데이트 메서드들 (단순화됨)
+    public void updateItemList(List<BaseItem> newItemList) {
+        if (newItemList != null) {
+            this.itemList.clear();
+            this.itemList.addAll(newItemList);
+            notifyDataSetChanged();
+            Log.d(TAG, "아이템 리스트 업데이트 완료 - 새로운 크기: " + itemList.size());
+        }
+    }
 }

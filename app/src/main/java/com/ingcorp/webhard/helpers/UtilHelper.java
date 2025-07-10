@@ -3,6 +3,8 @@ package com.ingcorp.webhard.helpers;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
 import android.net.NetworkInfo;
 import android.os.Build;
 import android.util.DisplayMetrics;
@@ -70,25 +72,210 @@ public class UtilHelper {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.N;
     }
 
-    // 네트워크 연결 상태 확인
+    // 네트워크 연결 상태 확인 (최신 API 사용)
     public boolean isNetworkConnected() {
         ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
-        return activeNetwork != null && activeNetwork.isConnectedOrConnecting();
+        if (cm == null) return false;
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            // Android 6.0 (API 23) 이상에서는 최신 API 사용
+            Network activeNetwork = cm.getActiveNetwork();
+            if (activeNetwork == null) return false;
+
+            NetworkCapabilities capabilities = cm.getNetworkCapabilities(activeNetwork);
+            return capabilities != null &&
+                    capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                    capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);
+        } else {
+            // Android 6.0 미만에서는 기존 API 사용
+            NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+            return activeNetwork != null && activeNetwork.isConnectedOrConnecting();
+        }
     }
 
-    // WiFi 연결 상태 확인
+    // WiFi 연결 상태 확인 (최신 API 사용)
     public boolean isWifiConnected() {
         ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo wifiNetwork = cm.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
-        return wifiNetwork != null && wifiNetwork.isConnected();
+        if (cm == null) return false;
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            // Android 6.0 (API 23) 이상에서는 최신 API 사용
+            Network activeNetwork = cm.getActiveNetwork();
+            if (activeNetwork == null) return false;
+
+            NetworkCapabilities capabilities = cm.getNetworkCapabilities(activeNetwork);
+            return capabilities != null &&
+                    capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) &&
+                    capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
+        } else {
+            // Android 6.0 미만에서는 기존 API 사용
+            @SuppressWarnings("deprecation")
+            NetworkInfo wifiNetwork = cm.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+            return wifiNetwork != null && wifiNetwork.isConnected();
+        }
     }
 
-    // 모바일 데이터 연결 상태 확인
+    // 모바일 데이터 연결 상태 확인 (최신 API 사용)
     public boolean isMobileConnected() {
         ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo mobileNetwork = cm.getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
-        return mobileNetwork != null && mobileNetwork.isConnected();
+        if (cm == null) return false;
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            // Android 6.0 (API 23) 이상에서는 최신 API 사용
+            Network activeNetwork = cm.getActiveNetwork();
+            if (activeNetwork == null) return false;
+
+            NetworkCapabilities capabilities = cm.getNetworkCapabilities(activeNetwork);
+            return capabilities != null &&
+                    capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) &&
+                    capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
+        } else {
+            // Android 6.0 미만에서는 기존 API 사용
+            @SuppressWarnings("deprecation")
+            NetworkInfo mobileNetwork = cm.getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
+            return mobileNetwork != null && mobileNetwork.isConnected();
+        }
+    }
+
+    // 이더넷 연결 상태 확인 (추가 기능)
+    public boolean isEthernetConnected() {
+        ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (cm == null) return false;
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            Network activeNetwork = cm.getActiveNetwork();
+            if (activeNetwork == null) return false;
+
+            NetworkCapabilities capabilities = cm.getNetworkCapabilities(activeNetwork);
+            return capabilities != null &&
+                    capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) &&
+                    capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
+        }
+        return false; // 이더넷 감지는 API 23 이상에서만 지원
+    }
+
+    // 네트워크 연결 타입 확인 (추가 기능)
+    public String getNetworkType() {
+        ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (cm == null) return "Unknown";
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            Network activeNetwork = cm.getActiveNetwork();
+            if (activeNetwork == null) return "No Connection";
+
+            NetworkCapabilities capabilities = cm.getNetworkCapabilities(activeNetwork);
+            if (capabilities == null) return "Unknown";
+
+            if (capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
+                return "WiFi";
+            } else if (capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
+                return "Mobile Data";
+            } else if (capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) {
+                return "Ethernet";
+            } else if (capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) {
+                return "VPN";
+            }
+            return "Other";
+        } else {
+            @SuppressWarnings("deprecation")
+            NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+            if (activeNetwork == null) return "No Connection";
+
+            switch (activeNetwork.getType()) {
+                case ConnectivityManager.TYPE_WIFI:
+                    return "WiFi";
+                case ConnectivityManager.TYPE_MOBILE:
+                    return "Mobile Data";
+                case ConnectivityManager.TYPE_ETHERNET:
+                    return "Ethernet";
+                default:
+                    return "Other";
+            }
+        }
+    }
+
+    // 네트워크 상태 정보 로깅 (디버그용)
+    public void logNetworkInfo() {
+        Log.d(TAG, "=== 네트워크 정보 ===");
+        Log.d(TAG, "연결 상태: " + (isNetworkConnected() ? "연결됨" : "연결 안됨"));
+        Log.d(TAG, "WiFi 연결: " + (isWifiConnected() ? "연결됨" : "연결 안됨"));
+        Log.d(TAG, "모바일 데이터: " + (isMobileConnected() ? "연결됨" : "연결 안됨"));
+        Log.d(TAG, "이더넷: " + (isEthernetConnected() ? "연결됨" : "연결 안됨"));
+        Log.d(TAG, "네트워크 타입: " + getNetworkType());
+        Log.d(TAG, "===================");
+    }
+
+    // 네트워크 연결 상태를 확인하고 없으면 에러 다이얼로그 표시
+    public boolean checkNetworkConnectionWithDialog(android.app.Activity activity) {
+        if (!isNetworkConnected()) {
+            Log.w(TAG, "No internet connection detected");
+            showNetworkErrorDialog(activity);
+            return false;
+        }
+
+        Log.d(TAG, "Internet connection verified");
+        return true;
+    }
+
+    // 네트워크 에러 다이얼로그 표시 (Activity 종료 포함)
+    public void showNetworkErrorDialog(android.app.Activity activity) {
+        if (activity == null || activity.isFinishing()) {
+            return;
+        }
+
+        new android.app.AlertDialog.Builder(activity)
+                .setTitle("No Internet Connection")
+                .setMessage("This app requires an internet connection to function properly. Please check your network settings and try again.")
+                .setPositiveButton("OK", (dialog, which) -> {
+                    Log.d(TAG, "Network error dialog dismissed - closing app");
+                    activity.finish();
+                    System.exit(0);
+                })
+                .setCancelable(false)
+                .show();
+    }
+
+    // 네트워크 에러 다이얼로그 표시 (커스텀 콜백)
+    public void showNetworkErrorDialog(android.app.Activity activity, Runnable onConfirmCallback) {
+        if (activity == null || activity.isFinishing()) {
+            return;
+        }
+
+        new android.app.AlertDialog.Builder(activity)
+                .setTitle("No Internet Connection")
+                .setMessage("This app requires an internet connection to function properly. Please check your network settings and try again.")
+                .setPositiveButton("OK", (dialog, which) -> {
+                    Log.d(TAG, "Network error dialog dismissed");
+                    if (onConfirmCallback != null) {
+                        onConfirmCallback.run();
+                    }
+                })
+                .setCancelable(false)
+                .show();
+    }
+
+    // 네트워크 재연결 확인 다이얼로그 (재시도 옵션 포함)
+    public void showNetworkRetryDialog(android.app.Activity activity, Runnable onRetryCallback) {
+        if (activity == null || activity.isFinishing()) {
+            return;
+        }
+
+        new android.app.AlertDialog.Builder(activity)
+                .setTitle("No Internet Connection")
+                .setMessage("This app requires an internet connection to function properly. Please check your network settings and try again.")
+                .setPositiveButton("Retry", (dialog, which) -> {
+                    Log.d(TAG, "Network retry requested");
+                    if (onRetryCallback != null) {
+                        onRetryCallback.run();
+                    }
+                })
+                .setNegativeButton("Exit", (dialog, which) -> {
+                    Log.d(TAG, "Network error - user chose to exit");
+                    activity.finish();
+                    System.exit(0);
+                })
+                .setCancelable(false)
+                .show();
     }
 
     // SharedPreferences 관련 메서드들
@@ -259,5 +446,4 @@ public class UtilHelper {
         if (bytes < 1024 * 1024 * 1024) return String.format("%.1f MB", bytes / (1024.0 * 1024.0));
         return String.format("%.1f GB", bytes / (1024.0 * 1024.0 * 1024.0));
     }
-
 }

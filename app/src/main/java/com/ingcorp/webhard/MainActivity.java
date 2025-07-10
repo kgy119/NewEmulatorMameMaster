@@ -16,6 +16,7 @@ import androidx.viewpager2.widget.ViewPager2;
 import com.google.android.gms.ads.AdView;
 import com.ingcorp.webhard.adapter.GameAdapter;
 import com.ingcorp.webhard.adapter.GamePagerAdapter;
+import com.ingcorp.webhard.helpers.UtilHelper;
 import com.ingcorp.webhard.manager.AdMobManager;
 import com.ingcorp.webhard.manager.GameListManager;
 
@@ -37,6 +38,7 @@ public class MainActivity extends FragmentActivity {
     // AdMob 관련
     private AdMobManager adMobManager;
     private FrameLayout adContainerView;
+    private UtilHelper utilHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,6 +53,14 @@ public class MainActivity extends FragmentActivity {
         initViews();
         createTabs();
         setupViewPager();
+
+        // 유틸리티 헬퍼 초기화
+        utilHelper = UtilHelper.getInstance(this);
+
+        // 인터넷 연결 상태 확인
+        if (!utilHelper.checkNetworkConnectionWithDialog(this)) {
+            return; // 연결이 없으면 여기서 중단
+        }
 
         // 배너 광고 로드 (AppBaseApplication에서 이미 초기화됨)
         loadCollapsibleBanner();

@@ -13,20 +13,18 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.view.View;
-import android.view.Window;
-import android.view.WindowInsets;
 import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
 import android.view.animation.AnimationSet;
 import android.view.animation.LinearInterpolator;
 import android.view.animation.ScaleAnimation;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import com.ingcorp.webhard.helpers.UtilHelper;
+import com.ingcorp.webhard.manager.GameListManager;
 import com.ingcorp.webhard.model.VersionResponse;
 import com.ingcorp.webhard.network.NetworkClient;
-import com.ingcorp.webhard.manager.GameListManager;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -41,6 +39,7 @@ public class SplashActivity extends Activity {
     private boolean isSplashTimeCompleted = false;
     private boolean isGameListUpdateCompleted = false;
     private GameListManager gameListManager;
+    private UtilHelper utilHelper;
 
     // 뷰 참조
     private ImageView appIcon;
@@ -51,14 +50,19 @@ public class SplashActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // EdgeToEdge 설정
-        setupEdgeToEdge();
-
         // 레이아웃 설정
         setContentView(R.layout.activity_splash);
 
+        // 유틸리티 헬퍼 초기화
+        utilHelper = UtilHelper.getInstance(this);
+
         // 뷰 초기화
         initViews();
+
+        // 인터넷 연결 상태 확인
+        if (!utilHelper.checkNetworkConnectionWithDialog(this)) {
+            return; // 연결이 없으면 여기서 중단
+        }
 
         // GameListManager 초기화
         gameListManager = new GameListManager(this);
@@ -71,6 +75,30 @@ public class SplashActivity extends Activity {
 
         // 스플래시 타이머 시작
         startSplashTimer();
+    }
+
+    private boolean checkNetworkConnection() {
+        if (!utilHelper.isNetworkConnected()) {
+            Log.w(TAG, "No internet connection detected");
+            showNetworkErrorDialog();
+            return false;
+        }
+
+        Log.d(TAG, "Internet connection verified");
+        return true;
+    }
+
+    private void showNetworkErrorDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("No Internet Connection")
+                .setMessage("This app requires an internet connection to function properly. Please check your network settings and try again.")
+                .setPositiveButton("OK", (dialog, which) -> {
+                    Log.d(TAG, "Network error dialog dismissed - closing app");
+                    finish();
+                    System.exit(0);
+                })
+                .setCancelable(false)
+                .show();
     }
 
     private void initViews() {
@@ -162,6 +190,11 @@ public class SplashActivity extends Activity {
                     handleVersionResponse(response.body());
                 } else {
                     Log.e(TAG, "Version check failed: " + response.code());
+                    // 네트워크 에러 시 재확인
+                    if (!utilHelper.isNetworkConnected()) {
+                        utilHelper.showNetworkErrorDialog(SplashActivity.this);
+                        return;
+                    }
                     onVersionCheckCompleted();
                 }
             }
@@ -169,6 +202,11 @@ public class SplashActivity extends Activity {
             @Override
             public void onFailure(Call<VersionResponse> call, Throwable t) {
                 Log.e(TAG, "Version check error", t);
+                // 네트워크 에러 시 재확인
+                if (!utilHelper.isNetworkConnected()) {
+                    utilHelper.showNetworkErrorDialog(SplashActivity.this);
+                    return;
+                }
                 onVersionCheckCompleted();
             }
         });
@@ -239,6 +277,11 @@ public class SplashActivity extends Activity {
             @Override
             public void onUpdateFailed(String error) {
                 Log.e(TAG, "Game list update failed: " + error);
+                // 네트워크 에러로 인한 실패인지 확인
+                if (!utilHelper.isNetworkConnected()) {
+                    utilHelper.showNetworkErrorDialog(SplashActivity.this);
+                    return;
+                }
                 onGameListUpdateCompleted();
             }
         });
@@ -265,10 +308,10 @@ public class SplashActivity extends Activity {
 
     private void showPackageUpdateDialog(String packageName) {
         new AlertDialog.Builder(this)
-                .setTitle("앱 업데이트 필요")
-                .setMessage("새로운 버전의 앱이 있습니다. 플레이스토어에서 업데이트해주세요.")
-                .setPositiveButton("업데이트", (dialog, which) -> openPlayStore(packageName))
-                .setNegativeButton("나중에", (dialog, which) -> {
+                .setTitle("App Update Required")
+                .setMessage("A new version of the app is available. Please update from the Play Store.")
+                .setPositiveButton("Update", (dialog, which) -> openPlayStore(packageName))
+                .setNegativeButton("Later", (dialog, which) -> {
                     finish();
                     System.exit(0);
                 })
@@ -278,10 +321,10 @@ public class SplashActivity extends Activity {
 
     private void showVersionUpdateDialog() {
         new AlertDialog.Builder(this)
-                .setTitle("앱 업데이트")
-                .setMessage("새로운 버전이 출시되었습니다. 업데이트하시겠습니까?")
-                .setPositiveButton("업데이트", (dialog, which) -> openPlayStore(getPackageName()))
-                .setNegativeButton("나중에", (dialog, which) -> {
+                .setTitle("App Update")
+                .setMessage("A new version has been released. Would you like to update?")
+                .setPositiveButton("Update", (dialog, which) -> openPlayStore(getPackageName()))
+                .setNegativeButton("Later", (dialog, which) -> {
                     finish();
                     System.exit(0);
                 })
@@ -325,62 +368,6 @@ public class SplashActivity extends Activity {
         startActivity(intent);
         finish();
         overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
-    }
-
-    private void setupEdgeToEdge() {
-        Window window = getWindow();
-        View decorView = window.getDecorView();
-        int colorPrimaryDark = getResources().getColor(R.color.colorPrimaryDark);
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            setupEdgeToEdgeApi29(window, decorView, colorPrimaryDark);
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            setupEdgeToEdgeApi26(window, decorView, colorPrimaryDark);
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            setupEdgeToEdgeApi23(window, decorView, colorPrimaryDark);
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            setupEdgeToEdgeApi21(window, decorView, colorPrimaryDark);
-        }
-    }
-
-    private void setupEdgeToEdgeApi29(Window window, View decorView, int colorPrimaryDark) {
-        window.setDecorFitsSystemWindows(false);
-        window.setStatusBarColor(colorPrimaryDark);
-        window.setNavigationBarColor(colorPrimaryDark);
-        window.setStatusBarContrastEnforced(false);
-        window.setNavigationBarContrastEnforced(false);
-
-        int flags = decorView.getSystemUiVisibility();
-        flags &= ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
-        flags &= ~View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
-        decorView.setSystemUiVisibility(flags);
-    }
-
-    private void setupEdgeToEdgeApi26(Window window, View decorView, int colorPrimaryDark) {
-        window.setDecorFitsSystemWindows(false);
-        window.setStatusBarColor(colorPrimaryDark);
-        window.setNavigationBarColor(colorPrimaryDark);
-
-        int flags = decorView.getSystemUiVisibility();
-        flags &= ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
-        flags &= ~View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
-        decorView.setSystemUiVisibility(flags);
-    }
-
-    private void setupEdgeToEdgeApi23(Window window, View decorView, int colorPrimaryDark) {
-        window.setDecorFitsSystemWindows(false);
-        window.setStatusBarColor(colorPrimaryDark);
-        window.setNavigationBarColor(colorPrimaryDark);
-
-        int flags = decorView.getSystemUiVisibility();
-        flags &= ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
-        decorView.setSystemUiVisibility(flags);
-    }
-
-    private void setupEdgeToEdgeApi21(Window window, View decorView, int colorPrimaryDark) {
-        window.setDecorFitsSystemWindows(false);
-        window.setStatusBarColor(colorPrimaryDark);
-        window.setNavigationBarColor(colorPrimaryDark);
     }
 
     @Override

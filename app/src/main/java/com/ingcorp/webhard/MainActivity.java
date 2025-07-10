@@ -50,20 +50,15 @@ public class MainActivity extends FragmentActivity {
         // AdMobManager 인스턴스 가져오기
         adMobManager = AdMobManager.getInstance(this);
 
+        // UtilHelper 인스턴스 가져오기
+        utilHelper = UtilHelper.getInstance(this);
+
         initViews();
         createTabs();
         setupViewPager();
 
-        // 유틸리티 헬퍼 초기화
-        utilHelper = UtilHelper.getInstance(this);
-
-        // 인터넷 연결 상태 확인
-        if (!utilHelper.checkNetworkConnectionWithDialog(this)) {
-            return; // 연결이 없으면 여기서 중단
-        }
-
-        // 배너 광고 로드 (AppBaseApplication에서 이미 초기화됨)
-        loadCollapsibleBanner();
+        // 배너 광고 로드 (광고 설정에 따라)
+        loadCollapsibleBannerIfEnabled();
 
         // 전면광고 미리 로드
         loadInterstitialAd();
@@ -156,6 +151,18 @@ public class MainActivity extends FragmentActivity {
             int scrollX = selectedTabContainer.getLeft() - (tabScrollView.getWidth() / 2) + (selectedTabContainer.getWidth() / 2);
             tabScrollView.smoothScrollTo(Math.max(0, scrollX), 0);
         }
+    }
+
+    private void loadCollapsibleBannerIfEnabled() {
+        // 배너 광고 설정 확인
+        if (!utilHelper.isAdBannerEnabled()) {
+            Log.d(TAG, "배너 광고가 비활성화됨 - 광고 로드하지 않음");
+            adContainerView.setVisibility(View.GONE);
+            return;
+        }
+
+        Log.d(TAG, "배너 광고가 활성화됨 - 광고 로드 시작");
+        loadCollapsibleBanner();
     }
 
     private void loadCollapsibleBanner() {

@@ -3,6 +3,7 @@ package com.ingcorp.webhard.model;
 import com.google.gson.annotations.SerializedName;
 
 public class VersionResponse {
+
     @SerializedName("root")
     private Root root;
 
@@ -15,8 +16,8 @@ public class VersionResponse {
     }
 
     public static class Root {
-        @SerializedName("isCheck")
-        private boolean isCheck;
+        @SerializedName("check")
+        private boolean check;
 
         @SerializedName("packageName")
         private String packageName;
@@ -24,6 +25,10 @@ public class VersionResponse {
         @SerializedName("nowVersionCode")
         private int nowVersionCode;
 
+        @SerializedName("gameListVersion")
+        private int gameListVersion;
+
+        // 광고 설정 관련 필드들
         @SerializedName("adBannerUse")
         private boolean adBannerUse;
 
@@ -33,16 +38,13 @@ public class VersionResponse {
         @SerializedName("adFullCoinCnt")
         private int adFullCoinCnt;
 
-        @SerializedName("gameListVersion")
-        private int gameListVersion;
-
-        // Getters and Setters
+        // 기존 getter/setter들
         public boolean isCheck() {
-            return isCheck;
+            return check;
         }
 
         public void setCheck(boolean check) {
-            isCheck = check;
+            this.check = check;
         }
 
         public String getPackageName() {
@@ -61,6 +63,15 @@ public class VersionResponse {
             this.nowVersionCode = nowVersionCode;
         }
 
+        public int getGameListVersion() {
+            return gameListVersion;
+        }
+
+        public void setGameListVersion(int gameListVersion) {
+            this.gameListVersion = gameListVersion;
+        }
+
+        // 광고 설정 관련 getter/setter들
         public boolean isAdBannerUse() {
             return adBannerUse;
         }
@@ -85,12 +96,24 @@ public class VersionResponse {
             this.adFullCoinCnt = adFullCoinCnt;
         }
 
-        public int getGameListVersion() {
-            return gameListVersion;
+        @Override
+        public String toString() {
+            return "Root{" +
+                    "check=" + check +
+                    ", packageName='" + packageName + '\'' +
+                    ", nowVersionCode=" + nowVersionCode +
+                    ", gameListVersion=" + gameListVersion +
+                    ", adBannerUse=" + adBannerUse +
+                    ", adFullCnt=" + adFullCnt +
+                    ", adFullCoinCnt=" + adFullCoinCnt +
+                    '}';
         }
+    }
 
-        public void setGameListVersion(int gameListVersion) {
-            this.gameListVersion = gameListVersion;
-        }
+    @Override
+    public String toString() {
+        return "VersionResponse{" +
+                "root=" + root +
+                '}';
     }
 }

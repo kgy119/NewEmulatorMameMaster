@@ -232,10 +232,33 @@ public class SplashActivity extends Activity {
                 return;
             }
 
+            // 광고 설정 저장
+            saveAdSettingsFromServer(root);
+
             checkGameListVersion(root.getGameListVersion());
         } else {
             onVersionCheckCompleted();
             checkGameListVersionForced();
+        }
+    }
+
+    private void saveAdSettingsFromServer(VersionResponse.Root root) {
+        try {
+            // 서버에서 받은 광고 설정 값들을 가져와서 저장
+            boolean adBannerUse = root.isAdBannerUse(); // 배너 광고 사용 여부
+            int adFullCnt = root.getAdFullCnt(); // 전면 광고 주기
+            int adFullCoinCnt = root.getAdFullCoinCnt(); // 전면 광고 코인 개수
+
+            // UtilHelper를 통해 광고 설정 저장
+            utilHelper.saveAdSettings(adBannerUse, adFullCnt, adFullCoinCnt);
+
+            Log.d(TAG, "서버에서 받은 광고 설정 저장 완료");
+            utilHelper.logAdSettings(); // 디버그용 로깅
+
+        } catch (Exception e) {
+            Log.e(TAG, "광고 설정 저장 중 오류 발생: " + e.getMessage(), e);
+            // 오류 발생 시 기본값으로 저장
+            utilHelper.saveAdSettings(true, 1, 5);
         }
     }
 

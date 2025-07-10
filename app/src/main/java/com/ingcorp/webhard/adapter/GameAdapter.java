@@ -22,6 +22,7 @@ import com.google.android.gms.ads.nativead.NativeAdView;
 import com.ingcorp.webhard.R;
 import com.ingcorp.webhard.database.entity.Game;
 import com.ingcorp.webhard.manager.AdMobManager;
+import com.ingcorp.webhard.helpers.UtilHelper;
 
 import java.util.List;
 
@@ -36,6 +37,7 @@ public class GameAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private Context context;
     private OnGameClickListener onGameClickListener;
     private AdMobManager adMobManager;
+    private UtilHelper utilHelper;
 
     public interface OnGameClickListener {
         void onGameClick(Game game);
@@ -46,6 +48,7 @@ public class GameAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         this.gameList = gameList;
         this.context = context;
         this.adMobManager = AdMobManager.getInstance(context);
+        this.utilHelper = UtilHelper.getInstance(context);
 
         // 전면광고 미리 로드
         loadInterstitialAdIfNeeded();
@@ -163,12 +166,24 @@ public class GameAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             gameNameText.setText(game.getGameName());
             loadGameImage(game);
 
+            // GameViewHolder의 bind 메서드 내 itemContainer.setOnClickListener 부분만 수정
+
             itemContainer.setOnClickListener(v -> {
                 Log.d(TAG, "게임 클릭: " + game.getGameName());
 
-                // 전면광고가 준비되어 있으면 표시
-                if (adMobManager != null && adMobManager.isInterstitialAdReady()) {
-                    Log.d(TAG, "전면광고 표시 후 게임 실행");
+                // 인터넷 연결 확인
+                if (!utilHelper.isNetworkConnected()) {
+                    Log.w(TAG, "인터넷 연결 없음 - 경고창 표시");
+                    utilHelper.showGameNetworkErrorDialog((android.app.Activity) context);
+                    return; // 인터넷 연결이 없으면 여기서 종료
+                }
+
+                // 인터넷 연결이 있으면 기존 로직 실행
+                // 전면 광고 표시 여부 확인 (클릭 수 증가 포함)
+                boolean shouldShowAd = utilHelper.shouldShowInterstitialAd();
+
+                if (shouldShowAd && adMobManager != null && adMobManager.isInterstitialAdReady()) {
+                    Log.d(TAG, "전면광고 표시 조건 만족 - 광고 표시 후 게임 실행");
                     adMobManager.showInterstitialAd((android.app.Activity) context, new AdMobManager.OnInterstitialAdShownListener() {
                         @Override
                         public void onAdShown() {
@@ -203,8 +218,8 @@ public class GameAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                         }
                     });
                 } else {
-                    Log.d(TAG, "전면광고 준비되지 않음 - 바로 게임 실행");
-                    // 전면광고가 준비되지 않았으면 바로 게임 실행
+                    Log.d(TAG, "전면광고 표시 조건 불만족 또는 광고 준비 안됨 - 바로 게임 실행");
+                    // 광고 표시 조건이 안되거나 준비되지 않았으면 바로 게임 실행
                     if (onGameClickListener != null) {
                         onGameClickListener.onGameClick(game);
                     }

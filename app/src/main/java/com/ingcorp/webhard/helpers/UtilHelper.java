@@ -12,6 +12,8 @@ import android.util.Log;
 import android.view.WindowManager;
 import android.widget.Toast;
 import com.ingcorp.webhard.BuildConfig;
+import com.ingcorp.webhard.R;
+
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -75,21 +77,44 @@ public class UtilHelper {
     // 네트워크 연결 상태 확인 (최신 API 사용)
     public boolean isNetworkConnected() {
         ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-        if (cm == null) return false;
+        if (cm == null) {
+            Log.w(TAG, "ConnectivityManager가 null입니다");
+            return false;
+        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             // Android 6.0 (API 23) 이상에서는 최신 API 사용
             Network activeNetwork = cm.getActiveNetwork();
-            if (activeNetwork == null) return false;
+            if (activeNetwork == null) {
+                Log.w(TAG, "활성 네트워크가 null입니다");
+                return false;
+            }
 
             NetworkCapabilities capabilities = cm.getNetworkCapabilities(activeNetwork);
-            return capabilities != null &&
-                    capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-                    capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);
+            if (capabilities == null) {
+                Log.w(TAG, "NetworkCapabilities가 null입니다");
+                return false;
+            }
+
+            boolean hasInternet = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
+            boolean isValidated = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);
+
+            Log.d(TAG, "네트워크 상태 - 인터넷: " + hasInternet + ", 검증됨: " + isValidated);
+
+            return hasInternet && isValidated;
         } else {
             // Android 6.0 미만에서는 기존 API 사용
+            @SuppressWarnings("deprecation")
             NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
-            return activeNetwork != null && activeNetwork.isConnectedOrConnecting();
+            if (activeNetwork == null) {
+                Log.w(TAG, "활성 네트워크 정보가 null입니다");
+                return false;
+            }
+
+            boolean isConnected = activeNetwork.isConnectedOrConnecting();
+            Log.d(TAG, "네트워크 연결 상태 (레거시): " + isConnected);
+
+            return isConnected;
         }
     }
 
@@ -154,7 +179,41 @@ public class UtilHelper {
         return false; // 이더넷 감지는 API 23 이상에서만 지원
     }
 
-    // 네트워크 연결 타입 확인 (추가 기능)
+    // 간단한 네트워크 연결 상태 확인 (대안 방법)
+    public boolean isNetworkAvailable() {
+        ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (cm == null) {
+            Log.w(TAG, "ConnectivityManager null - 네트워크 없음으로 간주");
+            return false;
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            Network activeNetwork = cm.getActiveNetwork();
+            if (activeNetwork == null) {
+                Log.w(TAG, "활성 네트워크 없음");
+                return false;
+            }
+
+            NetworkCapabilities capabilities = cm.getNetworkCapabilities(activeNetwork);
+            if (capabilities == null) {
+                Log.w(TAG, "NetworkCapabilities 없음");
+                return false;
+            }
+
+            // 간단히 인터넷 기능만 확인 (검증 무시)
+            boolean hasInternet = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
+            Log.d(TAG, "인터넷 기능 여부: " + hasInternet);
+
+            return hasInternet;
+        } else {
+            @SuppressWarnings("deprecation")
+            NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+            boolean isConnected = activeNetwork != null && activeNetwork.isConnected();
+            Log.d(TAG, "레거시 네트워크 연결 상태: " + isConnected);
+
+            return isConnected;
+        }
+    }
     public String getNetworkType() {
         ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
         if (cm == null) return "Unknown";
@@ -217,13 +276,13 @@ public class UtilHelper {
         return true;
     }
 
-    // 네트워크 에러 다이얼로그 표시 (Activity 종료 포함)
+    // 네트워크 에러 다이얼로그 표시 (Activity 종료 포함) - 테마 적용
     public void showNetworkErrorDialog(android.app.Activity activity) {
         if (activity == null || activity.isFinishing()) {
             return;
         }
 
-        new android.app.AlertDialog.Builder(activity)
+        new android.app.AlertDialog.Builder(activity, R.style.DialogTheme)
                 .setTitle("No Internet Connection")
                 .setMessage("This app requires an internet connection to function properly. Please check your network settings and try again.")
                 .setPositiveButton("OK", (dialog, which) -> {
@@ -235,13 +294,13 @@ public class UtilHelper {
                 .show();
     }
 
-    // 네트워크 에러 다이얼로그 표시 (커스텀 콜백)
+    // 네트워크 에러 다이얼로그 표시 (커스텀 콜백) - 테마 적용
     public void showNetworkErrorDialog(android.app.Activity activity, Runnable onConfirmCallback) {
         if (activity == null || activity.isFinishing()) {
             return;
         }
 
-        new android.app.AlertDialog.Builder(activity)
+        new android.app.AlertDialog.Builder(activity, R.style.DialogTheme)
                 .setTitle("No Internet Connection")
                 .setMessage("This app requires an internet connection to function properly. Please check your network settings and try again.")
                 .setPositiveButton("OK", (dialog, which) -> {
@@ -254,13 +313,45 @@ public class UtilHelper {
                 .show();
     }
 
-    // 네트워크 재연결 확인 다이얼로그 (재시도 옵션 포함)
+    // 게임 클릭용 네트워크 에러 다이얼로그 (앱 종료하지 않음) - 테마 적용
+    public void showGameNetworkErrorDialog(android.app.Activity activity) {
+        if (activity == null) {
+            Log.e(TAG, "Activity가 null이므로 다이얼로그를 표시할 수 없습니다");
+            return;
+        }
+
+        if (activity.isFinishing()) {
+            Log.e(TAG, "Activity가 종료 중이므로 다이얼로그를 표시할 수 없습니다");
+            return;
+        }
+
+        Log.d(TAG, "게임 네트워크 에러 다이얼로그 표시 시작");
+
+        try {
+            new android.app.AlertDialog.Builder(activity, R.style.DialogTheme)
+                    .setTitle("No Internet Connection")
+                    .setMessage("Internet connection is required to play games. Please check your network settings and try again.")
+                    .setPositiveButton("OK", (dialog, which) -> {
+                        Log.d(TAG, "Game network error dialog dismissed - continuing app");
+                        // 다이얼로그만 닫고 앱은 계속 실행
+                    })
+                    .setCancelable(false)
+                    .show();
+
+            Log.d(TAG, "게임 네트워크 에러 다이얼로그 표시 완료");
+
+        } catch (Exception e) {
+            Log.e(TAG, "게임 네트워크 에러 다이얼로그 표시 중 예외 발생: " + e.getMessage(), e);
+        }
+    }
+
+    // 네트워크 재시도 다이얼로그 - 테마 적용
     public void showNetworkRetryDialog(android.app.Activity activity, Runnable onRetryCallback) {
         if (activity == null || activity.isFinishing()) {
             return;
         }
 
-        new android.app.AlertDialog.Builder(activity)
+        new android.app.AlertDialog.Builder(activity, R.style.DialogTheme)
                 .setTitle("No Internet Connection")
                 .setMessage("This app requires an internet connection to function properly. Please check your network settings and try again.")
                 .setPositiveButton("Retry", (dialog, which) -> {
@@ -278,7 +369,152 @@ public class UtilHelper {
                 .show();
     }
 
-    // SharedPreferences 관련 메서드들
+    // 추가적인 범용 다이얼로그 메서드들
+    public void showInfoDialog(android.app.Activity activity, String title, String message) {
+        if (activity == null || activity.isFinishing()) {
+            return;
+        }
+
+        new android.app.AlertDialog.Builder(activity, R.style.DialogTheme)
+                .setTitle(title)
+                .setMessage(message)
+                .setPositiveButton("OK", null)
+                .show();
+    }
+
+    public void showConfirmDialog(android.app.Activity activity, String title, String message,
+                                  Runnable onConfirmCallback) {
+        if (activity == null || activity.isFinishing()) {
+            return;
+        }
+
+        new android.app.AlertDialog.Builder(activity, R.style.DialogTheme)
+                .setTitle(title)
+                .setMessage(message)
+                .setPositiveButton("Yes", (dialog, which) -> {
+                    if (onConfirmCallback != null) {
+                        onConfirmCallback.run();
+                    }
+                })
+                .setNegativeButton("No", null)
+                .show();
+    }
+
+    public void showCustomDialog(android.app.Activity activity, String title, String message,
+                                 String positiveButtonText, String negativeButtonText,
+                                 Runnable onPositiveCallback, Runnable onNegativeCallback) {
+        if (activity == null || activity.isFinishing()) {
+            return;
+        }
+
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(activity, R.style.DialogTheme)
+                .setTitle(title)
+                .setMessage(message);
+
+        if (positiveButtonText != null) {
+            builder.setPositiveButton(positiveButtonText, (dialog, which) -> {
+                if (onPositiveCallback != null) {
+                    onPositiveCallback.run();
+                }
+            });
+        }
+
+        if (negativeButtonText != null) {
+            builder.setNegativeButton(negativeButtonText, (dialog, which) -> {
+                if (onNegativeCallback != null) {
+                    onNegativeCallback.run();
+                }
+            });
+        }
+
+        builder.show();
+    }
+
+    // 광고 설정 관련 키들
+    private static final String AD_BANNER_USE_KEY = "ad_banner_use";
+    private static final String AD_FULL_CNT_KEY = "ad_full_cnt";
+    private static final String AD_FULL_COIN_CNT_KEY = "ad_full_coin_cnt";
+    private static final String GAME_CLICK_COUNT_KEY = "game_click_count";
+
+    // 광고 설정 저장
+    public void saveAdSettings(boolean adBannerUse, int adFullCnt, int adFullCoinCnt) {
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+
+        editor.putBoolean(AD_BANNER_USE_KEY, adBannerUse);
+        editor.putInt(AD_FULL_CNT_KEY, adFullCnt);
+        editor.putInt(AD_FULL_COIN_CNT_KEY, adFullCoinCnt);
+        editor.apply();
+
+        Log.d(TAG, "광고 설정 저장됨 - 배너: " + adBannerUse + ", 전면: " + adFullCnt + ", 코인: " + adFullCoinCnt);
+    }
+
+    // 배너 광고 사용 여부 확인
+    public boolean isAdBannerEnabled() {
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        return prefs.getBoolean(AD_BANNER_USE_KEY, true); // 기본값: true
+    }
+
+    // 전면 광고 주기 가져오기
+    public int getAdFullCount() {
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        return prefs.getInt(AD_FULL_CNT_KEY, 1); // 기본값: 1 (매번 표시)
+    }
+
+    // 전면 광고 코인 개수 가져오기
+    public int getAdFullCoinCount() {
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        return prefs.getInt(AD_FULL_COIN_CNT_KEY, 5); // 기본값: 5
+    }
+
+    // 게임 클릭 수 증가 및 전면 광고 표시 여부 확인
+    public boolean shouldShowInterstitialAd() {
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+
+        // 현재 클릭 수 가져오기
+        int currentClickCount = prefs.getInt(GAME_CLICK_COUNT_KEY, 0);
+
+        // 클릭 수 증가
+        currentClickCount++;
+
+        // 증가된 클릭 수 저장
+        prefs.edit().putInt(GAME_CLICK_COUNT_KEY, currentClickCount).apply();
+
+        // 전면 광고 주기 가져오기
+        int adFullCnt = getAdFullCount();
+
+        Log.d(TAG, "게임 클릭 수: " + currentClickCount + ", 광고 주기: " + adFullCnt);
+
+        // 주기로 나누어서 나머지가 0인지 확인
+        boolean shouldShow = (currentClickCount % adFullCnt) == 0;
+
+        Log.d(TAG, "전면 광고 표시 여부: " + shouldShow);
+
+        return shouldShow;
+    }
+
+    // 게임 클릭 수 가져오기
+    public int getGameClickCount() {
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        return prefs.getInt(GAME_CLICK_COUNT_KEY, 0);
+    }
+
+    // 게임 클릭 수 초기화 (디버그용)
+    public void resetGameClickCount() {
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        prefs.edit().putInt(GAME_CLICK_COUNT_KEY, 0).apply();
+        Log.d(TAG, "게임 클릭 수 초기화됨");
+    }
+
+    // 광고 설정 정보 로깅 (디버그용)
+    public void logAdSettings() {
+        Log.d(TAG, "=== 광고 설정 정보 ===");
+        Log.d(TAG, "배너 광고 사용: " + (isAdBannerEnabled() ? "예" : "아니오"));
+        Log.d(TAG, "전면 광고 주기: " + getAdFullCount());
+        Log.d(TAG, "전면 광고 코인: " + getAdFullCoinCount());
+        Log.d(TAG, "현재 게임 클릭 수: " + getGameClickCount());
+        Log.d(TAG, "==================");
+    }
     public void saveStringPreference(String key, String value) {
         SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         prefs.edit().putString(key, value).apply();

@@ -4,6 +4,9 @@ import android.content.Context;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.Display;
+import android.view.WindowManager;
+import android.widget.FrameLayout;
 
 import com.google.ads.mediation.admob.AdMobAdapter;
 import com.google.android.gms.ads.AdListener;
@@ -41,9 +44,7 @@ public class AdMobManager {
         return instance;
     }
 
-    /**
-     * AdMob 초기화
-     */
+    /// AdMob 초기화
     public void initialize(OnAdMobInitializedListener listener) {
         if (isInitialized) {
             Log.d(TAG, "AdMob이 이미 초기화됨");
@@ -100,16 +101,151 @@ public class AdMobManager {
         }
     }
 
-    /**
-     * AdMob 초기화 상태 확인
-     */
+    /// AdMob 초기화 상태 확인
     public boolean isInitialized() {
         return isInitialized;
     }
 
-    /**
-     * 네이티브 광고 로드
-     */
+    /// 접을 수 있는 배너 광고 로드
+    public void loadCollapsibleBanner(Context activityContext, FrameLayout adContainerView, OnBannerAdLoadedListener listener) {
+        if (!isInitialized) {
+            Log.w(TAG, "AdMob이 초기화되지 않음. 배너 광고 로드 실패");
+            if (listener != null) {
+                listener.onAdLoadFailed("AdMob이 초기화되지 않음");
+            }
+            return;
+        }
+
+        Log.d(TAG, "접을 수 있는 배너 광고 로드 시작");
+
+        try {
+            // AdView 생성
+            AdView adView = new AdView(activityContext);
+            adView.setAdUnitId(activityContext.getString(R.string.admob_id_banner));
+
+            // 적응형 배너 크기 설정
+            AdSize adSize = getAdaptiveBannerSize(activityContext);
+            adView.setAdSize(adSize);
+
+            // 접을 수 있는 배너 매개변수 추가
+            Bundle extras = new Bundle();
+            extras.putString("collapsible", "bottom"); // 하단 배치용
+
+            // 광고 요청 생성
+            AdRequest adRequest = new AdRequest.Builder()
+                    .addNetworkExtrasBundle(AdMobAdapter.class, extras)
+                    .build();
+
+            // 광고 리스너 설정
+            adView.setAdListener(new AdListener() {
+                @Override
+                public void onAdLoaded() {
+                    super.onAdLoaded();
+                    Log.d(TAG, String.format("배너 광고 로드 완료. 접을 수 있는 배너: %s",
+                            isCollapsibleBannerSupported() ? "예" : "아니오"));
+
+                    if (listener != null) {
+                        listener.onAdLoaded(adView);
+                    }
+                }
+
+                @Override
+                public void onAdFailedToLoad(LoadAdError adError) {
+                    super.onAdFailedToLoad(adError);
+                    Log.e(TAG, "배너 광고 로드 실패:");
+                    Log.e(TAG, "Error Code: " + adError.getCode());
+                    Log.e(TAG, "Error Message: " + adError.getMessage());
+                    Log.e(TAG, "Error Domain: " + adError.getDomain());
+
+                    String errorReason = getBannerErrorReason(adError.getCode());
+                    Log.e(TAG, "에러 원인: " + errorReason);
+
+                    if (listener != null) {
+                        listener.onAdLoadFailed(errorReason);
+                    }
+                }
+
+                @Override
+                public void onAdOpened() {
+                    super.onAdOpened();
+                    Log.d(TAG, "배너 광고 열림");
+                }
+
+                @Override
+                public void onAdClosed() {
+                    super.onAdClosed();
+                    Log.d(TAG, "배너 광고 닫힘");
+                }
+            });
+
+            // 컨테이너에 AdView 추가
+            adContainerView.removeAllViews();
+            adContainerView.addView(adView);
+
+            // 광고 로드
+            adView.loadAd(adRequest);
+
+            // 멤버 변수에 저장
+            mBannerAdView = adView;
+
+            Log.d(TAG, "접을 수 있는 배너 광고 요청 완료");
+
+        } catch (Exception e) {
+            Log.e(TAG, "배너 광고 로드 중 예외 발생: " + e.getMessage(), e);
+            if (listener != null) {
+                listener.onAdLoadFailed("배너 광고 로드 중 예외 발생: " + e.getMessage());
+            }
+        }
+    }
+
+    /// 적응형 배너 크기 계산
+    private AdSize getAdaptiveBannerSize(Context activityContext) {
+        WindowManager windowManager = (WindowManager) activityContext.getSystemService(Context.WINDOW_SERVICE);
+        Display display = windowManager.getDefaultDisplay();
+        DisplayMetrics outMetrics = new DisplayMetrics();
+        display.getMetrics(outMetrics);
+
+        float widthPixels = outMetrics.widthPixels;
+        float density = outMetrics.density;
+        int adWidth = (int) (widthPixels / density);
+
+        return AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(activityContext, adWidth);
+    }
+
+    /// 접을 수 있는 배너 지원 여부 확인
+    public boolean isCollapsibleBannerSupported() {
+        // Android 10 (API 29) 이상에서만 접는 배너 지원
+        return android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q;
+    }
+
+    /// 배너 광고 에러 원인 반환
+    private String getBannerErrorReason(int errorCode) {
+        switch (errorCode) {
+            case 0: // ERROR_CODE_INTERNAL_ERROR
+                return "내부 오류 - AdMob 서버 문제 또는 잘못된 설정";
+            case 1: // ERROR_CODE_INVALID_REQUEST
+                return "잘못된 요청 - 광고 단위 ID 확인 필요 또는 앱 ID 누락";
+            case 2: // ERROR_CODE_NETWORK_ERROR
+                return "네트워크 오류 - 인터넷 연결 확인";
+            case 3: // ERROR_CODE_NO_FILL
+                return "광고 없음 - 현재 사용 가능한 광고가 없음";
+            case 8: // ERROR_CODE_APP_ID_MISSING
+                return "앱 ID 누락 - AndroidManifest.xml에 APPLICATION_ID 설정 필요";
+            default:
+                return "알 수 없는 오류 (코드: " + errorCode + ")";
+        }
+    }
+
+    /// 배너 광고 해제
+    public void destroyBannerAd() {
+        if (mBannerAdView != null) {
+            mBannerAdView.destroy();
+            mBannerAdView = null;
+            Log.d(TAG, "배너 광고 해제됨");
+        }
+    }
+
+    /// 네이티브 광고 로드
     public void loadNativeAd(OnNativeAdLoadedListener listener) {
         if (!isInitialized) {
             Log.w(TAG, "AdMob이 초기화되지 않음. 광고 로드 실패");
@@ -191,179 +327,6 @@ public class AdMobManager {
         }
     }
 
-    /**
-     * 접는 배너 광고 로드
-     */
-    public void loadCollapsibleBannerAd(AdView adView, OnBannerAdLoadedListener listener) {
-        if (!isInitialized) {
-            Log.w(TAG, "AdMob이 초기화되지 않음. 배너 광고 로드 실패");
-            if (listener != null) {
-                listener.onAdLoadFailed("AdMob이 초기화되지 않음");
-            }
-            return;
-        }
-
-        this.mBannerAdView = adView;
-
-        // AdUnitId가 설정되어 있지 않으면 설정
-        if (mBannerAdView.getAdUnitId() == null || mBannerAdView.getAdUnitId().isEmpty()) {
-            String bannerAdUnitId = context.getString(R.string.admob_id_banner);
-            mBannerAdView.setAdUnitId(bannerAdUnitId);
-        }
-
-        Log.d(TAG, "접는 배너 광고 로드 시작 - Ad Unit ID: " + mBannerAdView.getAdUnitId());
-
-        // AdListener 먼저 설정
-        mBannerAdView.setAdListener(new AdListener() {
-            @Override
-            public void onAdLoaded() {
-                Log.d(TAG, "접는 배너 광고 로드 완료");
-                if (listener != null) {
-                    listener.onAdLoaded();
-                }
-            }
-
-            @Override
-            public void onAdFailedToLoad(@NonNull LoadAdError adError) {
-                String errorReason = getErrorReason(adError.getCode());
-                Log.e(TAG, "접는 배너 광고 로드 실패: " + errorReason);
-                if (listener != null) {
-                    listener.onAdLoadFailed(errorReason);
-                }
-            }
-
-            @Override
-            public void onAdClicked() {
-                Log.d(TAG, "접는 배너 광고 클릭");
-                if (listener != null) {
-                    listener.onAdClicked();
-                }
-            }
-
-            @Override
-            public void onAdOpened() {
-                Log.d(TAG, "접는 배너 광고 열림");
-            }
-
-            @Override
-            public void onAdClosed() {
-                Log.d(TAG, "접는 배너 광고 닫힘");
-            }
-        });
-
-        // ViewTreeObserver를 사용하여 뷰가 완전히 레이아웃된 후 AdSize 설정 및 광고 로드
-        mBannerAdView.getViewTreeObserver().addOnGlobalLayoutListener(new android.view.ViewTreeObserver.OnGlobalLayoutListener() {
-            @Override
-            public void onGlobalLayout() {
-                // 리스너 제거 (한 번만 실행되도록)
-                mBannerAdView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-
-                try {
-                    // AdSize가 설정되어 있지 않은 경우에만 설정
-                    if (mBannerAdView.getAdSize() == null) {
-                        DisplayMetrics displayMetrics = context.getResources().getDisplayMetrics();
-                        float density = displayMetrics.density;
-                        float adWidthPixels = mBannerAdView.getWidth();
-
-                        if (adWidthPixels == 0) {
-                            adWidthPixels = displayMetrics.widthPixels;
-                        }
-
-                        int adWidth = (int) (adWidthPixels / density);
-                        AdSize adSize = AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(context, adWidth);
-                        mBannerAdView.setAdSize(adSize);
-                        Log.d(TAG, "AdSize 동적 설정: " + adSize.toString());
-                    } else {
-                        Log.d(TAG, "AdSize 이미 설정됨: " + mBannerAdView.getAdSize().toString());
-                    }
-
-                    // AdRequest 생성 및 광고 로드
-                    AdRequest.Builder adRequestBuilder = new AdRequest.Builder();
-
-                    // 접는 배너를 위한 추가 파라미터 설정
-                    Bundle extras = new Bundle();
-                    extras.putString("collapsible", "bottom"); // 하단 접는 배너
-                    adRequestBuilder.addNetworkExtrasBundle(AdMobAdapter.class, extras);
-
-                    AdRequest adRequest = adRequestBuilder.build();
-
-                    // 광고 로드
-                    mBannerAdView.loadAd(adRequest);
-
-                } catch (Exception e) {
-                    Log.e(TAG, "접는 배너 광고 로드 중 오류: " + e.getMessage());
-                    if (listener != null) {
-                        listener.onAdLoadFailed(e.getMessage());
-                    }
-                }
-            }
-        });
-    }
-
-    /**
-     * 배너 광고 일시정지
-     */
-    public void pauseBannerAd() {
-        if (mBannerAdView != null) {
-            mBannerAdView.pause();
-            Log.d(TAG, "배너 광고 일시정지");
-        }
-    }
-
-    /**
-     * 배너 광고 재시작
-     */
-    public void resumeBannerAd() {
-        if (mBannerAdView != null) {
-            mBannerAdView.resume();
-            Log.d(TAG, "배너 광고 재시작");
-        }
-    }
-
-    /**
-     * 배너 광고 제거
-     */
-    public void destroyBannerAd() {
-        if (mBannerAdView != null) {
-            mBannerAdView.destroy();
-            mBannerAdView = null;
-            Log.d(TAG, "배너 광고 제거");
-        }
-    }
-
-    /**
-     * 접는 배너 지원 여부 확인
-     */
-    public boolean isCollapsibleBannerSupported() {
-        // Android 10 (API 29) 이상에서만 접는 배너 지원
-        return android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q;
-    }
-
-    /**
-     * 디버깅을 위한 기기 정보 로그
-     */
-    public void logDeviceInfo() {
-        Log.d(TAG, "=== 기기 정보 ===");
-        Log.d(TAG, "모델: " + android.os.Build.MODEL);
-        Log.d(TAG, "제조사: " + android.os.Build.MANUFACTURER);
-        Log.d(TAG, "Android 버전: " + android.os.Build.VERSION.RELEASE);
-        Log.d(TAG, "API 레벨: " + android.os.Build.VERSION.SDK_INT);
-
-        DisplayMetrics metrics = context.getResources().getDisplayMetrics();
-        Log.d(TAG, "화면 밀도: " + metrics.density);
-        Log.d(TAG, "화면 크기: " + metrics.widthPixels + "x" + metrics.heightPixels);
-        Log.d(TAG, "접는 배너 지원: " + (isCollapsibleBannerSupported() ? "지원" : "미지원"));
-        Log.d(TAG, "==================");
-    }
-
-    /**
-     * 전체 정리 메서드
-     */
-    public void cleanup() {
-        destroyBannerAd();
-        Log.d(TAG, "AdMobManager 정리 완료");
-    }
-
     private String getErrorReason(int errorCode) {
         switch (errorCode) {
             case 0: // ERROR_CODE_INTERNAL_ERROR
@@ -388,20 +351,15 @@ public class AdMobManager {
         void onInitialized(boolean success);
     }
 
-    /**
-     * 네이티브 광고 로드 리스너
-     */
-    public interface OnNativeAdLoadedListener {
-        void onAdLoaded(NativeAd nativeAd);
+    /// 배너 광고 로드 리스너
+    public interface OnBannerAdLoadedListener {
+        void onAdLoaded(AdView adView);
         void onAdLoadFailed(String error);
     }
 
-    /**
-     * 배너 광고 로드 리스너
-     */
-    public interface OnBannerAdLoadedListener {
-        void onAdLoaded();
+    /// 네이티브 광고 로드 리스너
+    public interface OnNativeAdLoadedListener {
+        void onAdLoaded(NativeAd nativeAd);
         void onAdLoadFailed(String error);
-        void onAdClicked();
     }
 }

@@ -46,10 +46,45 @@ public class GameAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         this.gameList = gameList;
         this.context = context;
         this.adMobManager = AdMobManager.getInstance(context);
+
+        // 전면광고 미리 로드
+        loadInterstitialAdIfNeeded();
     }
 
     public void setOnGameClickListener(OnGameClickListener listener) {
         this.onGameClickListener = listener;
+    }
+
+    private void loadInterstitialAdIfNeeded() {
+        if (adMobManager != null && !adMobManager.isInterstitialAdReady()) {
+            Log.d(TAG, "전면광고 미리 로드 시작");
+            adMobManager.loadInterstitialAd(new AdMobManager.OnInterstitialAdLoadedListener() {
+                @Override
+                public void onAdLoaded() {
+                    Log.d(TAG, "전면광고 미리 로드 완료");
+                }
+
+                @Override
+                public void onAdLoadFailed(String error) {
+                    Log.e(TAG, "전면광고 미리 로드 실패: " + error);
+                }
+
+                @Override
+                public void onAdClosed() {
+                    // 광고 닫힘 후 자동으로 다음 광고 로드됨
+                }
+
+                @Override
+                public void onAdShown() {
+                    // 광고 표시됨
+                }
+
+                @Override
+                public void onAdShowFailed(String error) {
+                    Log.e(TAG, "전면광고 표시 실패: " + error);
+                }
+            });
+        }
     }
 
     @Override
@@ -129,8 +164,53 @@ public class GameAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             loadGameImage(game);
 
             itemContainer.setOnClickListener(v -> {
-                if (onGameClickListener != null) {
-                    onGameClickListener.onGameClick(game);
+                Log.d(TAG, "게임 클릭: " + game.getGameName());
+
+                // 전면광고가 준비되어 있으면 표시
+                if (adMobManager != null && adMobManager.isInterstitialAdReady()) {
+                    Log.d(TAG, "전면광고 표시 후 게임 실행");
+                    adMobManager.showInterstitialAd((android.app.Activity) context, new AdMobManager.OnInterstitialAdShownListener() {
+                        @Override
+                        public void onAdShown() {
+                            Log.d(TAG, "전면광고 표시됨");
+                        }
+
+                        @Override
+                        public void onAdClosed() {
+                            Log.d(TAG, "전면광고 닫힘 - 게임 실행");
+                            // 광고가 닫힌 후 게임 실행
+                            if (onGameClickListener != null) {
+                                onGameClickListener.onGameClick(game);
+                            }
+                        }
+
+                        @Override
+                        public void onAdShowFailed(String error) {
+                            Log.e(TAG, "전면광고 표시 실패: " + error + " - 바로 게임 실행");
+                            // 광고 표시 실패 시 바로 게임 실행
+                            if (onGameClickListener != null) {
+                                onGameClickListener.onGameClick(game);
+                            }
+                        }
+
+                        @Override
+                        public void onAdNotReady() {
+                            Log.w(TAG, "전면광고가 준비되지 않음 - 바로 게임 실행");
+                            // 광고가 준비되지 않았으면 바로 게임 실행
+                            if (onGameClickListener != null) {
+                                onGameClickListener.onGameClick(game);
+                            }
+                        }
+                    });
+                } else {
+                    Log.d(TAG, "전면광고 준비되지 않음 - 바로 게임 실행");
+                    // 전면광고가 준비되지 않았으면 바로 게임 실행
+                    if (onGameClickListener != null) {
+                        onGameClickListener.onGameClick(game);
+                    }
+
+                    // 다음을 위해 전면광고 로드 시도
+                    loadInterstitialAdIfNeeded();
                 }
             });
 
@@ -197,6 +277,7 @@ public class GameAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         private NativeAdView nativeAdView;
         private MediaView mediaView;
         private TextView adHeadline;
+
         // 숨겨진 필수 요소들 (AdMob 요구사항)
         private TextView adBody;
         private TextView adAdvertiser;
@@ -247,10 +328,6 @@ public class GameAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                     showDefaultAd();
                 }
             });
-        }
-
-        private void loadAdInternal() {
-            // 이 메서드는 더 이상 필요하지 않음 (AdMobManager로 이동)
         }
 
         private void populateNativeAdView(NativeAd nativeAd) {

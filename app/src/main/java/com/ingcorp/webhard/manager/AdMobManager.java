@@ -14,7 +14,10 @@ import com.google.android.gms.ads.AdLoader;
 import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdSize;
 import com.google.android.gms.ads.AdView;
+import com.google.android.gms.ads.FullScreenContentCallback;
 import com.google.android.gms.ads.LoadAdError;
+import com.google.android.gms.ads.interstitial.InterstitialAd;
+import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
 import com.google.android.gms.ads.nativead.NativeAd;
 import com.google.android.gms.ads.nativead.NativeAdOptions;
 import com.ingcorp.webhard.R;
@@ -27,6 +30,8 @@ public class AdMobManager {
 
     private Context context;
     private AdView mBannerAdView;
+    private InterstitialAd mInterstitialAd;
+    private boolean isLoadingInterstitial = false;
 
     private AdMobManager(Context context) {
         this.context = context.getApplicationContext();
@@ -161,7 +166,158 @@ public class AdMobManager {
         }
     }
 
-    /// 배너 광고 해제
+    /// 전면광고 로드
+    public void loadInterstitialAd(OnInterstitialAdLoadedListener listener) {
+        if (isLoadingInterstitial) {
+            Log.d(TAG, "전면광고가 이미 로딩 중입니다");
+            return;
+        }
+
+        Log.d(TAG, "전면광고 로드 시작");
+        isLoadingInterstitial = true;
+
+        try {
+            String adUnitId = context.getString(R.string.admob_id_full);
+            AdRequest adRequest = new AdRequest.Builder().build();
+
+            InterstitialAd.load(context, adUnitId, adRequest,
+                    new InterstitialAdLoadCallback() {
+                        @Override
+                        public void onAdLoaded(@NonNull InterstitialAd interstitialAd) {
+                            mInterstitialAd = interstitialAd;
+                            isLoadingInterstitial = false;
+                            Log.d(TAG, "전면광고 로드 성공");
+
+                            // 전면광고 콜백 설정
+                            mInterstitialAd.setFullScreenContentCallback(new FullScreenContentCallback() {
+                                @Override
+                                public void onAdDismissedFullScreenContent() {
+                                    Log.d(TAG, "전면광고 닫힘");
+                                    mInterstitialAd = null;
+                                    if (listener != null) {
+                                        listener.onAdClosed();
+                                    }
+                                    // 다음 광고를 위해 미리 로드
+                                    loadInterstitialAd(null);
+                                }
+
+                                @Override
+                                public void onAdFailedToShowFullScreenContent(com.google.android.gms.ads.AdError adError) {
+                                    Log.e(TAG, "전면광고 표시 실패: " + adError.getMessage());
+                                    mInterstitialAd = null;
+                                    if (listener != null) {
+                                        listener.onAdShowFailed(adError.getMessage());
+                                    }
+                                }
+
+                                @Override
+                                public void onAdShowedFullScreenContent() {
+                                    Log.d(TAG, "전면광고 표시됨");
+                                    if (listener != null) {
+                                        listener.onAdShown();
+                                    }
+                                }
+                            });
+
+                            if (listener != null) {
+                                listener.onAdLoaded();
+                            }
+                        }
+
+                        @Override
+                        public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
+                            isLoadingInterstitial = false;
+                            Log.e(TAG, "전면광고 로드 실패:");
+                            Log.e(TAG, "Error Code: " + loadAdError.getCode());
+                            Log.e(TAG, "Error Message: " + loadAdError.getMessage());
+                            Log.e(TAG, "Error Domain: " + loadAdError.getDomain());
+
+                            String errorReason = getInterstitialErrorReason(loadAdError.getCode());
+                            Log.e(TAG, "에러 원인: " + errorReason);
+
+                            mInterstitialAd = null;
+                            if (listener != null) {
+                                listener.onAdLoadFailed(errorReason);
+                            }
+                        }
+                    });
+
+        } catch (Exception e) {
+            isLoadingInterstitial = false;
+            Log.e(TAG, "전면광고 로드 중 예외 발생: " + e.getMessage(), e);
+            if (listener != null) {
+                listener.onAdLoadFailed("전면광고 로드 중 예외 발생: " + e.getMessage());
+            }
+        }
+    }
+
+    /// 전면광고 표시
+    public void showInterstitialAd(Context activityContext, OnInterstitialAdShownListener listener) {
+        if (mInterstitialAd != null) {
+            Log.d(TAG, "전면광고 표시");
+
+            // 표시 전 콜백 설정 업데이트
+            mInterstitialAd.setFullScreenContentCallback(new FullScreenContentCallback() {
+                @Override
+                public void onAdDismissedFullScreenContent() {
+                    Log.d(TAG, "전면광고 닫힘");
+                    mInterstitialAd = null;
+                    if (listener != null) {
+                        listener.onAdClosed();
+                    }
+                    // 다음 광고를 위해 미리 로드
+                    loadInterstitialAd(null);
+                }
+
+                @Override
+                public void onAdFailedToShowFullScreenContent(com.google.android.gms.ads.AdError adError) {
+                    Log.e(TAG, "전면광고 표시 실패: " + adError.getMessage());
+                    mInterstitialAd = null;
+                    if (listener != null) {
+                        listener.onAdShowFailed(adError.getMessage());
+                    }
+                }
+
+                @Override
+                public void onAdShowedFullScreenContent() {
+                    Log.d(TAG, "전면광고 표시됨");
+                    if (listener != null) {
+                        listener.onAdShown();
+                    }
+                }
+            });
+
+            mInterstitialAd.show((android.app.Activity) activityContext);
+        } else {
+            Log.w(TAG, "전면광고가 준비되지 않음");
+            if (listener != null) {
+                listener.onAdNotReady();
+            }
+        }
+    }
+
+    /// 전면광고 준비 상태 확인
+    public boolean isInterstitialAdReady() {
+        return mInterstitialAd != null;
+    }
+
+    /// 전면광고 에러 원인 반환
+    private String getInterstitialErrorReason(int errorCode) {
+        switch (errorCode) {
+            case 0: // ERROR_CODE_INTERNAL_ERROR
+                return "내부 오류 - AdMob 서버 문제 또는 잘못된 설정";
+            case 1: // ERROR_CODE_INVALID_REQUEST
+                return "잘못된 요청 - 광고 단위 ID 확인 필요 또는 앱 ID 누락";
+            case 2: // ERROR_CODE_NETWORK_ERROR
+                return "네트워크 오류 - 인터넷 연결 확인";
+            case 3: // ERROR_CODE_NO_FILL
+                return "광고 없음 - 현재 사용 가능한 전면광고가 없음";
+            case 8: // ERROR_CODE_APP_ID_MISSING
+                return "앱 ID 누락 - AndroidManifest.xml에 APPLICATION_ID 설정 필요";
+            default:
+                return "알 수 없는 오류 (코드: " + errorCode + ")";
+        }
+    }
     public void destroyBannerAd() {
         if (mBannerAdView != null) {
             mBannerAdView.destroy();
@@ -271,5 +427,22 @@ public class AdMobManager {
     public interface OnNativeAdLoadedListener {
         void onAdLoaded(NativeAd nativeAd);
         void onAdLoadFailed(String error);
+    }
+
+    /// 전면광고 로드 리스너
+    public interface OnInterstitialAdLoadedListener {
+        void onAdLoaded();
+        void onAdLoadFailed(String error);
+        void onAdClosed();
+        void onAdShown();
+        void onAdShowFailed(String error);
+    }
+
+    /// 전면광고 표시 리스너
+    public interface OnInterstitialAdShownListener {
+        void onAdShown();
+        void onAdClosed();
+        void onAdShowFailed(String error);
+        void onAdNotReady();
     }
 }

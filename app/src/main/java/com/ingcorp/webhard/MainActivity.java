@@ -54,6 +54,9 @@ public class MainActivity extends FragmentActivity {
 
         // 배너 광고 로드 (AppBaseApplication에서 이미 초기화됨)
         loadCollapsibleBanner();
+
+        // 전면광고 미리 로드
+        loadInterstitialAd();
     }
 
     private void initViews() {
@@ -165,6 +168,37 @@ public class MainActivity extends FragmentActivity {
         }
     }
 
+    private void loadInterstitialAd() {
+        if (adMobManager != null) {
+            adMobManager.loadInterstitialAd(new AdMobManager.OnInterstitialAdLoadedListener() {
+                @Override
+                public void onAdLoaded() {
+                    Log.d(TAG, "전면광고 미리 로드 완료");
+                }
+
+                @Override
+                public void onAdLoadFailed(String error) {
+                    Log.e(TAG, "전면광고 미리 로드 실패: " + error);
+                }
+
+                @Override
+                public void onAdClosed() {
+                    Log.d(TAG, "전면광고 닫힌 후 자동으로 다음 광고 로드됨");
+                }
+
+                @Override
+                public void onAdShown() {
+                    Log.d(TAG, "전면광고 표시됨");
+                }
+
+                @Override
+                public void onAdShowFailed(String error) {
+                    Log.e(TAG, "전면광고 표시 실패: " + error);
+                }
+            });
+        }
+    }
+
     @Override
     protected void onPause() {
         super.onPause();
@@ -183,6 +217,7 @@ public class MainActivity extends FragmentActivity {
         }
         if (adMobManager != null) {
             adMobManager.destroyBannerAd();
+            // 전면광고는 자동으로 해제되므로 별도 메서드 불필요
         }
     }
 }

@@ -16,8 +16,8 @@ public class VersionResponse {
     }
 
     public static class Root {
-        @SerializedName("check")
-        private boolean check;
+        @SerializedName("isCheck")
+        private boolean isCheck;
 
         @SerializedName("packageName")
         private String packageName;
@@ -43,11 +43,11 @@ public class VersionResponse {
 
         // 기존 getter/setter들
         public boolean isCheck() {
-            return check;
+            return isCheck;
         }
 
-        public void setCheck(boolean check) {
-            this.check = check;
+        public void setCheck(boolean isCheck) {
+            this.isCheck = isCheck;
         }
 
         public String getPackageName() {
@@ -110,7 +110,7 @@ public class VersionResponse {
         @Override
         public String toString() {
             return "Root{" +
-                    "check=" + check +
+                    "isCheck=" + isCheck +
                     ", packageName='" + packageName + '\'' +
                     ", nowVersionCode=" + nowVersionCode +
                     ", gameListVersion=" + gameListVersion +

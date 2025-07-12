@@ -31,7 +31,7 @@ android {
     }
 
 	base {
-		archivesName = "MAME4droid 2025-" + defaultConfig.versionName
+		archivesName = "RetroMaster 2025-" + defaultConfig.versionName
 	}
 
     bundle {

@@ -53,6 +53,7 @@ public class GameFragment extends Fragment {
 
     private android.app.AlertDialog customProgressDialog;
     private android.widget.ProgressBar customProgressBar;
+    private android.widget.TextView progressText;
 
     public static GameFragment newInstance(int position, GameListManager gameListManager) {
         GameFragment fragment = new GameFragment();
@@ -372,10 +373,12 @@ public class GameFragment extends Fragment {
             android.view.View dialogView = getLayoutInflater().inflate(R.layout.dialog_download_progress, null);
             android.widget.TextView titleText = dialogView.findViewById(R.id.progress_title);
             customProgressBar = dialogView.findViewById(R.id.progress_bar);
+            progressText = dialogView.findViewById(R.id.progress_text); // 진행률 텍스트 참조 추가
 
-            titleText.setText("Downloading " + gameName);
+            titleText.setText(gameName); // "Downloading" 제거하고 게임이름만
             customProgressBar.setMax(100);
             customProgressBar.setProgress(0);
+            progressText.setText("0 / 100"); // 초기 진행률 설정
 
             customProgressDialog = new android.app.AlertDialog.Builder(getActivity(), R.style.DialogTheme)
                     .setView(dialogView)
@@ -386,17 +389,21 @@ public class GameFragment extends Fragment {
         }
     }
 
+
     private void updateCustomProgress(int progress) {
-        if (customProgressBar != null) {
+        if (customProgressBar != null && progressText != null) {
             customProgressBar.setProgress(progress);
+            progressText.setText(progress + " / 100"); // 진행률 텍스트 업데이트
         }
     }
+
 
     private void hideCustomProgressDialog() {
         if (customProgressDialog != null && customProgressDialog.isShowing()) {
             customProgressDialog.dismiss();
             customProgressDialog = null;
             customProgressBar = null;
+            progressText = null; // 참조 정리
         }
     }
 

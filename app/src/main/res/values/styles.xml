@@ -47,16 +47,5 @@
 		<item name="android:textStyle">bold</item>
 	</style>
 
-	<!-- Progress Dialog Style -->
-	<style name="ProgressDialogTheme" parent="Theme.AppCompat.Dialog">
-		<item name="android:windowBackground">@color/dialog_background</item>
-		<item name="android:textColor">@color/dialog_text_color</item>
-		<item name="android:progressBarStyle">@style/DarkProgressBarStyle</item>
-	</style>
-
-	<style name="DarkProgressBarStyle" parent="Widget.AppCompat.ProgressBar.Horizontal">
-		<item name="android:progressDrawable">@drawable/progress_bar_dark</item>
-	</style>
-
 
 </resources>

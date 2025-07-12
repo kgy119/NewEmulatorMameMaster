@@ -289,84 +289,152 @@ public class GameFragment extends Fragment {
         }
     }
 
-    private void downloadAndLaunchGameWithProgress(Game game, String romFileName, String romsPath) {
-        String downloadUrl = Constants.BASE_ROM_URL + game.getGameRom();
+    /**
+     * 임시 파일을 최종 파일로 안전하게 이동하는 메서드
+     */
+    private boolean moveTemporaryFileToFinal(File tempFile, File finalFile) {
+        try {
+            Log.d(Constants.LOG_TAG, "임시 파일을 최종 파일로 이동 시작");
+            Log.d(Constants.LOG_TAG, "임시 파일: " + tempFile.getAbsolutePath() + " (크기: " + tempFile.length() + ")");
+            Log.d(Constants.LOG_TAG, "최종 파일: " + finalFile.getAbsolutePath());
 
-        // 커스텀 프로그레스 다이얼로그 표시
-        showCustomProgressDialog(game.getGameName());
-
-        // 프로그레스 리스너 생성
-        ProgressInterceptor.ProgressListener progressListener = new ProgressInterceptor.ProgressListener() {
-            @Override
-            public void onProgress(long bytesRead, long contentLength, boolean done) {
-                if (contentLength > 0) {
-                    int progress = (int) ((bytesRead * 100) / contentLength);
-
-                    // UI 스레드에서 프로그레스 업데이트
-                    mainHandler.post(() -> {
-                        updateCustomProgress(progress);
-
-                        if (done) {
-                            Log.d(Constants.LOG_TAG, "Download completed via Retrofit Progress");
-                        }
-                    });
-                }
-            }
-        };
-
-        // 프로그레스 지원 API 서비스 생성
-        ApiService progressApiService = NetworkClient.getProgressApiService(progressListener);
-        Call<ResponseBody> call = progressApiService.downloadRom(downloadUrl);
-
-        call.enqueue(new Callback<ResponseBody>() {
-            @Override
-            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    // 백그라운드에서 파일 저장
-                    new Thread(() -> {
-                        try {
-                            File romFile = new File(romsPath, romFileName);
-                            FileOutputStream fos = new FileOutputStream(romFile);
-                            InputStream inputStream = response.body().byteStream();
-
-                            byte[] buffer = new byte[4096];
-                            int bytesRead;
-
-                            while ((bytesRead = inputStream.read(buffer)) != -1) {
-                                fos.write(buffer, 0, bytesRead);
-                            }
-
-                            fos.close();
-                            inputStream.close();
-
-                            // UI 스레드에서 완료 처리
-                            mainHandler.post(() -> {
-                                hideCustomProgressDialog();
-                                launchGame(game, romFile.getAbsolutePath());
-                            });
-
-                        } catch (Exception e) {
-                            Log.e(Constants.LOG_TAG, "Error saving ROM file", e);
-                            mainHandler.post(() -> {
-                                hideCustomProgressDialog(); // 수정: 커스텀 다이얼로그 숨김
-                                showDownloadError(e.getMessage());
-                            });
-                        }
-                    }).start();
+            // 최종 파일이 이미 존재한다면 백업 생성
+            File backupFile = null;
+            if (finalFile.exists()) {
+                backupFile = new File(finalFile.getAbsolutePath() + ".backup");
+                if (finalFile.renameTo(backupFile)) {
+                    Log.d(Constants.LOG_TAG, "기존 파일을 백업으로 이동: " + backupFile.getAbsolutePath());
                 } else {
-                    hideCustomProgressDialog(); // 수정: 커스텀 다이얼로그 숨김
-                    showDownloadError("Server response error");
+                    Log.w(Constants.LOG_TAG, "기존 파일 백업 실패, 삭제 시도");
+                    if (!finalFile.delete()) {
+                        Log.e(Constants.LOG_TAG, "기존 파일 삭제 실패");
+                        return false;
+                    }
                 }
             }
 
-            @Override
-            public void onFailure(Call<ResponseBody> call, Throwable t) {
-                Log.e(Constants.LOG_TAG, "ROM download failed", t);
-                hideCustomProgressDialog(); // 수정: 커스텀 다이얼로그 숨김
-                showDownloadError(t.getMessage());
+            // 임시 파일을 최종 파일로 이동
+            if (tempFile.renameTo(finalFile)) {
+                Log.d(Constants.LOG_TAG, "파일 이동 성공");
+
+                // 백업 파일이 있다면 삭제
+                if (backupFile != null && backupFile.exists()) {
+                    if (backupFile.delete()) {
+                        Log.d(Constants.LOG_TAG, "백업 파일 삭제됨");
+                    } else {
+                        Log.w(Constants.LOG_TAG, "백업 파일 삭제 실패: " + backupFile.getAbsolutePath());
+                    }
+                }
+
+                // 최종 파일 검증
+                if (finalFile.exists() && finalFile.length() > 0) {
+                    Log.d(Constants.LOG_TAG, "최종 파일 검증 성공 - 크기: " + finalFile.length());
+                    return true;
+                } else {
+                    Log.e(Constants.LOG_TAG, "최종 파일 검증 실패");
+                    return false;
+                }
+
+            } else {
+                Log.e(Constants.LOG_TAG, "파일 이동 실패");
+
+                // 이동 실패시 백업 파일 복원 시도
+                if (backupFile != null && backupFile.exists()) {
+                    if (backupFile.renameTo(finalFile)) {
+                        Log.d(Constants.LOG_TAG, "백업 파일 복원됨");
+                    } else {
+                        Log.e(Constants.LOG_TAG, "백업 파일 복원 실패");
+                    }
+                }
+                return false;
             }
-        });
+
+        } catch (Exception e) {
+            Log.e(Constants.LOG_TAG, "파일 이동 중 예외 발생", e);
+            return false;
+        }
     }
+
+    /**
+     * ROM 파일 존재 여부를 더 안전하게 확인하는 메서드
+     */
+    private boolean isRomFileValid(File romFile) {
+        try {
+            if (!romFile.exists()) {
+                Log.d(Constants.LOG_TAG, "ROM 파일이 존재하지 않음: " + romFile.getAbsolutePath());
+                return false;
+            }
+
+            if (romFile.length() == 0) {
+                Log.w(Constants.LOG_TAG, "ROM 파일이 비어있음: " + romFile.getAbsolutePath());
+                return false;
+            }
+
+            if (!romFile.canRead()) {
+                Log.w(Constants.LOG_TAG, "ROM 파일을 읽을 수 없음: " + romFile.getAbsolutePath());
+                return false;
+            }
+
+            Log.d(Constants.LOG_TAG, "ROM 파일 유효성 검사 통과: " + romFile.getAbsolutePath() + " (크기: " + romFile.length() + ")");
+            return true;
+
+        } catch (Exception e) {
+            Log.e(Constants.LOG_TAG, "ROM 파일 유효성 검사 중 오류", e);
+            return false;
+        }
+    }
+
+    /**
+     * 수정된 checkRomAndLaunchGame 메서드
+     */
+    private void checkRomAndLaunchGame(Game game) {
+        if (getContext() == null) return;
+
+        String romFileName = game.getGameRom();
+        if (romFileName == null || romFileName.isEmpty()) {
+            showToast("ROM file information not available.");
+            return;
+        }
+
+        String romsPath = getRomsPath();
+        if (romsPath == null) {
+            showToast("Cannot find ROM storage path.");
+            return;
+        }
+
+        File romFile = new File(romsPath, romFileName);
+
+        // ROM 파일의 유효성을 더 엄격하게 검사
+        if (isRomFileValid(romFile)) {
+            Log.d(Constants.LOG_TAG, "유효한 ROM 파일 발견, 게임 직접 실행");
+            launchGame(game, romFile.getAbsolutePath());
+        } else {
+            // 유효하지 않은 파일이 있다면 삭제하고 다시 다운로드
+            if (romFile.exists()) {
+                Log.w(Constants.LOG_TAG, "유효하지 않은 ROM 파일 삭제: " + romFile.getAbsolutePath());
+                if (romFile.delete()) {
+                    Log.d(Constants.LOG_TAG, "손상된 ROM 파일 삭제됨");
+                } else {
+                    Log.e(Constants.LOG_TAG, "손상된 ROM 파일 삭제 실패");
+                }
+            }
+
+            // 임시 파일도 확인하고 있다면 삭제
+            File tempFile = new File(romsPath, romFileName + ".tmp");
+            if (tempFile.exists()) {
+                Log.w(Constants.LOG_TAG, "기존 임시 파일 발견, 삭제: " + tempFile.getAbsolutePath());
+                if (tempFile.delete()) {
+                    Log.d(Constants.LOG_TAG, "기존 임시 파일 삭제됨");
+                } else {
+                    Log.e(Constants.LOG_TAG, "기존 임시 파일 삭제 실패");
+                }
+            }
+
+            Log.d(Constants.LOG_TAG, "ROM 파일을 새로 다운로드 시작");
+            downloadAndLaunchGameWithProgress(game, romFileName, romsPath);
+        }
+    }
+
 
     private void showCustomProgressDialog(String gameName) {
         if (getActivity() != null && !getActivity().isFinishing()) {
@@ -421,31 +489,6 @@ public class GameFragment extends Fragment {
         }
     }
 
-    private void checkRomAndLaunchGame(Game game) {
-        if (getContext() == null) return;
-
-        String romFileName = game.getGameRom();
-        if (romFileName == null || romFileName.isEmpty()) {
-            showToast("ROM file information not available.");
-            return;
-        }
-
-        String romsPath = getRomsPath();
-        if (romsPath == null) {
-            showToast("Cannot find ROM storage path.");
-            return;
-        }
-
-        File romFile = new File(romsPath, romFileName);
-
-        if (romFile.exists()) {
-            Log.d(Constants.LOG_TAG, "ROM file exists, launching game directly");
-            launchGame(game, romFile.getAbsolutePath());
-        } else {
-            Log.d(Constants.LOG_TAG, "ROM file not found, starting Retrofit progress download");
-            downloadAndLaunchGameWithProgress(game, romFileName, romsPath);
-        }
-    }
 
     @Override
     public void onResume() {
@@ -454,5 +497,271 @@ public class GameFragment extends Fragment {
             int position = getArguments().getInt(ARG_POSITION, 0);
             loadGames(position);
         }
+    }
+
+    /**
+     * 다운로드 시작 전 사전 검사를 수행하는 메서드
+     */
+    private boolean preDownloadCheck(Game game, String romFileName, String romsPath) {
+        try {
+            UtilHelper utilHelper = UtilHelper.getInstance(getContext());
+
+            // 1. 네트워크 연결 확인
+            if (!utilHelper.isNetworkConnected()) {
+                Log.w(Constants.LOG_TAG, "네트워크 연결 없음");
+                utilHelper.showGameNetworkErrorDialog((android.app.Activity) getContext());
+                return false;
+            }
+
+            // 2. 이미 다운로드 중인지 확인
+            String downloadState = utilHelper.getDownloadState(romFileName);
+            if ("downloading".equals(downloadState)) {
+                Log.w(Constants.LOG_TAG, "이미 다운로드 중인 파일: " + romFileName);
+                showToast("This game is already being downloaded.");
+                return false;
+            }
+
+            // 3. 디스크 공간 확인 (예상 크기 50MB로 가정)
+            long estimatedSize = 50 * 1024 * 1024; // 50MB
+            if (!utilHelper.hasEnoughDiskSpace(romsPath, estimatedSize)) {
+                Log.w(Constants.LOG_TAG, "디스크 공간 부족");
+                showToast("Not enough storage space available.");
+                return false;
+            }
+
+            // 4. 다운로드 상태를 downloading으로 설정
+            utilHelper.saveDownloadState(romFileName, "downloading");
+
+            Log.d(Constants.LOG_TAG, "다운로드 사전 검사 통과: " + romFileName);
+            return true;
+
+        } catch (Exception e) {
+            Log.e(Constants.LOG_TAG, "다운로드 사전 검사 중 오류", e);
+            return false;
+        }
+    }
+
+    /**
+     * 개선된 다운로드 메서드 - 에러 처리 및 재시도 기능 강화
+     */
+    private void downloadAndLaunchGameWithProgress(Game game, String romFileName, String romsPath) {
+        // 사전 검사 수행
+        if (!preDownloadCheck(game, romFileName, romsPath)) {
+            return;
+        }
+
+        String downloadUrl = Constants.BASE_ROM_URL + game.getGameRom();
+
+        // 임시 파일 경로 생성
+        String tempFileName = romFileName + ".tmp";
+        File tempFile = new File(romsPath, tempFileName);
+        File finalFile = new File(romsPath, romFileName);
+
+        // 기존 임시 파일 정리
+        cleanupExistingTempFile(tempFile);
+
+        // 커스텀 프로그레스 다이얼로그 표시
+        showCustomProgressDialog(game.getGameName());
+
+        // 프로그레스 리스너 생성
+        ProgressInterceptor.ProgressListener progressListener = new ProgressInterceptor.ProgressListener() {
+            @Override
+            public void onProgress(long bytesRead, long contentLength, boolean done) {
+                if (contentLength > 0) {
+                    int progress = (int) ((bytesRead * 100) / contentLength);
+
+                    mainHandler.post(() -> {
+                        updateCustomProgress(progress);
+
+                        if (done) {
+                            Log.d(Constants.LOG_TAG, "다운로드 완료 신호 수신");
+                        }
+                    });
+                }
+            }
+        };
+
+        // API 서비스 생성 및 다운로드 시작
+        ApiService progressApiService = NetworkClient.getProgressApiService(progressListener);
+        Call<ResponseBody> call = progressApiService.downloadRom(downloadUrl);
+
+        call.enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    // 백그라운드에서 파일 저장
+                    new Thread(() -> saveDownloadedFile(response, game, tempFile, finalFile, romFileName)).start();
+                } else {
+                    handleDownloadFailure(game, romFileName, "Server response error. Code: " + response.code());
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                Log.e(Constants.LOG_TAG, "다운로드 네트워크 오류", t);
+                handleDownloadFailure(game, romFileName, "Network error: " + t.getMessage());
+            }
+        });
+    }
+
+    /**
+     * 기존 임시 파일을 정리하는 메서드
+     */
+    private void cleanupExistingTempFile(File tempFile) {
+        if (tempFile.exists()) {
+            if (tempFile.delete()) {
+                Log.d(Constants.LOG_TAG, "기존 임시 파일 삭제됨: " + tempFile.getName());
+            } else {
+                Log.w(Constants.LOG_TAG, "기존 임시 파일 삭제 실패: " + tempFile.getName());
+            }
+        }
+    }
+
+    /**
+     * 다운로드된 파일을 저장하는 메서드
+     */
+    private void saveDownloadedFile(Response<ResponseBody> response, Game game, File tempFile, File finalFile, String romFileName) {
+        FileOutputStream fos = null;
+        InputStream inputStream = null;
+        boolean downloadSuccess = false;
+        long expectedSize = -1;
+        long actualSize = 0;
+
+        try {
+            // Content-Length 확인
+            String contentLengthHeader = response.headers().get("Content-Length");
+            if (contentLengthHeader != null) {
+                expectedSize = Long.parseLong(contentLengthHeader);
+                Log.d(Constants.LOG_TAG, "예상 파일 크기: " + formatBytes(expectedSize));
+            }
+
+            // 임시 파일에 저장
+            fos = new FileOutputStream(tempFile);
+            inputStream = response.body().byteStream();
+
+            byte[] buffer = new byte[8192];
+            int bytesRead;
+
+            Log.d(Constants.LOG_TAG, "임시 파일에 저장 시작: " + tempFile.getAbsolutePath());
+
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                fos.write(buffer, 0, bytesRead);
+                actualSize += bytesRead;
+            }
+
+            fos.flush();
+
+            // 파일 크기 검증
+            if (expectedSize > 0 && actualSize != expectedSize) {
+                throw new Exception("File size mismatch. Expected: " + expectedSize + ", Actual: " + actualSize);
+            }
+
+            // 임시 파일 유효성 검증
+            if (!tempFile.exists() || tempFile.length() == 0) {
+                throw new Exception("Temporary file is empty or does not exist");
+            }
+
+            Log.d(Constants.LOG_TAG, "다운로드 완료 - 크기: " + formatBytes(actualSize));
+            downloadSuccess = true;
+
+        } catch (Exception e) {
+            Log.e(Constants.LOG_TAG, "파일 저장 중 오류", e);
+            handleDownloadFailure(game, romFileName, e.getMessage());
+
+            // 실패한 임시 파일 정리
+            cleanupExistingTempFile(tempFile);
+
+        } finally {
+            // 리소스 정리
+            closeStream(fos);
+            closeStream(inputStream);
+        }
+
+        // 성공시 파일 이동 및 게임 시작
+        if (downloadSuccess) {
+            finalizeDownload(game, tempFile, finalFile, romFileName);
+        }
+    }
+
+    /**
+     * 스트림을 안전하게 닫는 헬퍼 메서드
+     */
+    private void closeStream(java.io.Closeable stream) {
+        if (stream != null) {
+            try {
+                stream.close();
+            } catch (Exception e) {
+                Log.e(Constants.LOG_TAG, "스트림 닫기 실패", e);
+            }
+        }
+    }
+
+    /**
+     * 다운로드 완료 후 파일 이동 및 게임 시작 처리
+     */
+    private void finalizeDownload(Game game, File tempFile, File finalFile, String romFileName) {
+        UtilHelper utilHelper = UtilHelper.getInstance(getContext());
+        boolean moveSuccess = moveTemporaryFileToFinal(tempFile, finalFile);
+
+        mainHandler.post(() -> {
+            hideCustomProgressDialog();
+
+            if (moveSuccess) {
+                // 다운로드 상태를 완료로 설정
+                utilHelper.saveDownloadState(romFileName, "completed");
+
+                Log.d(Constants.LOG_TAG, "ROM 다운로드 및 설치 완료: " + finalFile.getAbsolutePath());
+                launchGame(game, finalFile.getAbsolutePath());
+            } else {
+                // 파일 이동 실패
+                utilHelper.saveDownloadState(romFileName, "failed");
+                showDownloadErrorWithRetry(game, "Failed to finalize downloaded file");
+            }
+        });
+    }
+
+    /**
+     * 다운로드 실패 처리 메서드
+     */
+    private void handleDownloadFailure(Game game, String romFileName, String errorMessage) {
+        UtilHelper utilHelper = UtilHelper.getInstance(getContext());
+
+        // 다운로드 상태를 실패로 설정
+        utilHelper.saveDownloadState(romFileName, "failed");
+
+        mainHandler.post(() -> {
+            hideCustomProgressDialog();
+            showDownloadErrorWithRetry(game, errorMessage);
+        });
+    }
+
+    /**
+     * 재시도 옵션이 있는 다운로드 에러 다이얼로그
+     */
+    private void showDownloadErrorWithRetry(Game game, String error) {
+        if (getActivity() != null && !getActivity().isFinishing()) {
+            UtilHelper utilHelper = UtilHelper.getInstance(getContext());
+
+            utilHelper.showDownloadErrorDialog(
+                    (android.app.Activity) getActivity(),
+                    game.getGameName(),
+                    error,
+                    () -> {
+                        // 재시도 콜백
+                        Log.d(Constants.LOG_TAG, "다운로드 재시도: " + game.getGameName());
+                        checkRomAndLaunchGame(game);
+                    }
+            );
+        }
+    }
+
+    /**
+     * 바이트를 읽기 쉬운 형태로 포맷하는 헬퍼 메서드
+     */
+    private String formatBytes(long bytes) {
+        if (bytes < 1024) return bytes + " B";
+        if (bytes < 1024 * 1024) return String.format("%.1f KB", bytes / 1024.0);
+        if (bytes < 1024 * 1024 * 1024) return String.format("%.1f MB", bytes / (1024.0 * 1024.0));
+        return String.format("%.1f GB", bytes / (1024.0 * 1024.0 * 1024.0));
     }
 }

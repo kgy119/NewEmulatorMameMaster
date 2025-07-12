@@ -13,7 +13,9 @@ import android.view.WindowManager;
 import android.widget.Toast;
 import com.ingcorp.webhard.BuildConfig;
 import com.ingcorp.webhard.R;
+import com.ingcorp.webhard.base.Constants;
 
+import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -33,6 +35,9 @@ public class UtilHelper {
 
     private Context context;
     private static UtilHelper instance;
+    private static final String TEMP_FILE_EXTENSION = ".tmp";
+    private static final String BACKUP_FILE_EXTENSION = ".backup";
+
 
     private android.app.ProgressDialog progressDialog;
 
@@ -616,5 +621,324 @@ public class UtilHelper {
         if (bytes < 1024 * 1024) return String.format("%.1f KB", bytes / 1024.0);
         if (bytes < 1024 * 1024 * 1024) return String.format("%.1f MB", bytes / (1024.0 * 1024.0));
         return String.format("%.1f GB", bytes / (1024.0 * 1024.0 * 1024.0));
+    }
+
+    /**
+     * 앱 시작시 손상된 임시 파일들을 정리하는 메서드 (UtilHelper에 추가 권장)
+     */
+    public void cleanupTemporaryFiles(String romsPath) {
+        try {
+            File romsDir = new File(romsPath);
+            if (!romsDir.exists() || !romsDir.isDirectory()) {
+                return;
+            }
+
+            File[] files = romsDir.listFiles((dir, name) -> name.endsWith(".tmp"));
+            if (files != null) {
+                for (File tempFile : files) {
+                    if (tempFile.delete()) {
+                        Log.d(Constants.LOG_TAG, "시작시 임시 파일 정리됨: " + tempFile.getName());
+                    } else {
+                        Log.w(Constants.LOG_TAG, "시작시 임시 파일 정리 실패: " + tempFile.getName());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            Log.e(Constants.LOG_TAG, "임시 파일 정리 중 오류", e);
+        }
+    }
+
+    /**
+            * 앱 시작시 모든 임시 파일들을 정리하는 메서드
+    */
+    public void cleanupAllTemporaryFiles(String romsPath) {
+        try {
+            Log.d(TAG, "임시 파일 정리 시작: " + romsPath);
+
+            File romsDir = new File(romsPath);
+            if (!romsDir.exists() || !romsDir.isDirectory()) {
+                Log.w(TAG, "ROMs 디렉토리가 존재하지 않음: " + romsPath);
+                return;
+            }
+
+            // .tmp 파일들 정리
+            cleanupFilesByExtension(romsDir, TEMP_FILE_EXTENSION, "임시");
+
+            // .backup 파일들 정리 (오래된 백업 파일들)
+            cleanupFilesByExtension(romsDir, BACKUP_FILE_EXTENSION, "백업");
+
+            Log.d(TAG, "임시 파일 정리 완료");
+
+        } catch (Exception e) {
+            Log.e(TAG, "임시 파일 정리 중 오류 발생", e);
+        }
+    }
+
+    /**
+     * 특정 확장자의 파일들을 정리하는 헬퍼 메서드
+     */
+    private void cleanupFilesByExtension(File directory, String extension, String fileType) {
+        try {
+            File[] files = directory.listFiles((dir, name) -> name.endsWith(extension));
+            if (files != null && files.length > 0) {
+                Log.d(TAG, fileType + " 파일 " + files.length + "개 발견");
+
+                int deletedCount = 0;
+                for (File file : files) {
+                    if (file.delete()) {
+                        deletedCount++;
+                        Log.d(TAG, fileType + " 파일 삭제됨: " + file.getName());
+                    } else {
+                        Log.w(TAG, fileType + " 파일 삭제 실패: " + file.getName());
+                    }
+                }
+
+                Log.d(TAG, fileType + " 파일 정리 완료: " + deletedCount + "/" + files.length);
+            } else {
+                Log.d(TAG, fileType + " 파일 없음");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, fileType + " 파일 정리 중 오류", e);
+        }
+    }
+
+    /**
+     * 특정 ROM 파일의 임시 파일이 존재하는지 확인
+     */
+    public boolean hasTemporaryFile(String romsPath, String romFileName) {
+        try {
+            File tempFile = new File(romsPath, romFileName + TEMP_FILE_EXTENSION);
+            return tempFile.exists();
+        } catch (Exception e) {
+            Log.e(TAG, "임시 파일 존재 확인 중 오류", e);
+            return false;
+        }
+    }
+
+    /**
+     * ROM 파일의 유효성을 검사하는 메서드
+     */
+    public boolean isRomFileValid(File romFile) {
+        try {
+            if (romFile == null) {
+                Log.w(TAG, "ROM 파일 객체가 null");
+                return false;
+            }
+
+            if (!romFile.exists()) {
+                Log.d(TAG, "ROM 파일이 존재하지 않음: " + romFile.getAbsolutePath());
+                return false;
+            }
+
+            if (!romFile.isFile()) {
+                Log.w(TAG, "ROM 경로가 파일이 아님: " + romFile.getAbsolutePath());
+                return false;
+            }
+
+            if (romFile.length() == 0) {
+                Log.w(TAG, "ROM 파일이 비어있음: " + romFile.getAbsolutePath());
+                return false;
+            }
+
+            if (!romFile.canRead()) {
+                Log.w(TAG, "ROM 파일을 읽을 수 없음: " + romFile.getAbsolutePath());
+                return false;
+            }
+
+            // 최소 파일 크기 검사 (1KB 미만은 유효하지 않다고 가정)
+            if (romFile.length() < 1024) {
+                Log.w(TAG, "ROM 파일이 너무 작음: " + romFile.length() + " bytes");
+                return false;
+            }
+
+            Log.d(TAG, "ROM 파일 유효성 검사 통과: " + romFile.getAbsolutePath() +
+                    " (크기: " + formatBytes(romFile.length()) + ")");
+            return true;
+
+        } catch (Exception e) {
+            Log.e(TAG, "ROM 파일 유효성 검사 중 오류", e);
+            return false;
+        }
+    }
+
+    /**
+     * 손상된 ROM 파일을 안전하게 삭제하는 메서드
+     */
+    public boolean deleteCorruptedRomFile(File romFile) {
+        try {
+            if (romFile == null || !romFile.exists()) {
+                return true; // 이미 없으므로 성공으로 간주
+            }
+
+            Log.w(TAG, "손상된 ROM 파일 삭제 시도: " + romFile.getAbsolutePath() +
+                    " (크기: " + romFile.length() + ")");
+
+            if (romFile.delete()) {
+                Log.d(TAG, "손상된 ROM 파일 삭제 성공");
+                return true;
+            } else {
+                Log.e(TAG, "손상된 ROM 파일 삭제 실패");
+                return false;
+            }
+
+        } catch (Exception e) {
+            Log.e(TAG, "손상된 ROM 파일 삭제 중 오류", e);
+            return false;
+        }
+    }
+
+    /**
+     * 다운로드 디스크 공간이 충분한지 확인하는 메서드
+     */
+    public boolean hasEnoughDiskSpace(String romsPath, long requiredBytes) {
+        try {
+            File romsDir = new File(romsPath);
+
+            // 디렉토리가 없다면 생성 시도
+            if (!romsDir.exists()) {
+                if (!romsDir.mkdirs()) {
+                    Log.e(TAG, "ROMs 디렉토리 생성 실패: " + romsPath);
+                    return false;
+                }
+            }
+
+            long availableBytes = romsDir.getUsableSpace();
+            long requiredWithBuffer = requiredBytes * 2; // 버퍼로 2배 크기 요구
+
+            Log.d(TAG, "디스크 공간 확인 - 필요: " + formatBytes(requiredWithBuffer) +
+                    ", 사용가능: " + formatBytes(availableBytes));
+
+            if (availableBytes < requiredWithBuffer) {
+                Log.w(TAG, "디스크 공간 부족");
+                return false;
+            }
+
+            return true;
+
+        } catch (Exception e) {
+            Log.e(TAG, "디스크 공간 확인 중 오류", e);
+            return false;
+        }
+    }
+
+    /**
+     * 다운로드 상태를 추적하는 메서드
+     */
+    public void saveDownloadState(String romFileName, String state) {
+        try {
+            String key = "download_state_" + romFileName;
+            saveStringPreference(key, state + "_" + System.currentTimeMillis());
+            Log.d(TAG, "다운로드 상태 저장: " + romFileName + " -> " + state);
+        } catch (Exception e) {
+            Log.e(TAG, "다운로드 상태 저장 중 오류", e);
+        }
+    }
+
+    /**
+     * 다운로드 상태를 가져오는 메서드
+     */
+    public String getDownloadState(String romFileName) {
+        try {
+            String key = "download_state_" + romFileName;
+            String value = getStringPreference(key, "none");
+
+            if (value.contains("_")) {
+                return value.split("_")[0];
+            }
+            return value;
+        } catch (Exception e) {
+            Log.e(TAG, "다운로드 상태 확인 중 오류", e);
+            return "none";
+        }
+    }
+
+    /**
+     * 다운로드 상태를 정리하는 메서드
+     */
+    public void clearDownloadState(String romFileName) {
+        try {
+            String key = "download_state_" + romFileName;
+            saveStringPreference(key, "none");
+            Log.d(TAG, "다운로드 상태 정리: " + romFileName);
+        } catch (Exception e) {
+            Log.e(TAG, "다운로드 상태 정리 중 오류", e);
+        }
+    }
+
+    /**
+     * 다운로드 관련 오류 다이얼로그를 표시하는 메서드
+     */
+    public void showDownloadErrorDialog(android.app.Activity activity, String gameName, String error,
+                                        Runnable onRetryCallback) {
+        if (activity == null || activity.isFinishing()) {
+            return;
+        }
+
+        String message = "Failed to download " + gameName + "\n\nError: " + error +
+                "\n\nWould you like to try again?";
+
+        new android.app.AlertDialog.Builder(activity, R.style.DialogTheme)
+                .setTitle("Download Failed")
+                .setMessage(message)
+                .setPositiveButton("Retry", (dialog, which) -> {
+                    if (onRetryCallback != null) {
+                        onRetryCallback.run();
+                    }
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    /**
+     * ROMs 디렉토리의 상태를 로깅하는 디버그 메서드
+     */
+    public void logRomsDirectoryStatus(String romsPath) {
+        if (!isDebugMode()) return;
+
+        try {
+            Log.d(TAG, "=== ROMs 디렉토리 상태 ===");
+            Log.d(TAG, "경로: " + romsPath);
+
+            File romsDir = new File(romsPath);
+            if (!romsDir.exists()) {
+                Log.d(TAG, "디렉토리 존재하지 않음");
+                return;
+            }
+
+            Log.d(TAG, "디렉토리 존재: " + romsDir.isDirectory());
+            Log.d(TAG, "읽기 권한: " + romsDir.canRead());
+            Log.d(TAG, "쓰기 권한: " + romsDir.canWrite());
+            Log.d(TAG, "사용 가능 공간: " + formatBytes(romsDir.getUsableSpace()));
+
+            File[] files = romsDir.listFiles();
+            if (files != null) {
+                Log.d(TAG, "총 파일 수: " + files.length);
+
+                int romCount = 0;
+                int tempCount = 0;
+                int backupCount = 0;
+
+                for (File file : files) {
+                    if (file.getName().endsWith(TEMP_FILE_EXTENSION)) {
+                        tempCount++;
+                    } else if (file.getName().endsWith(BACKUP_FILE_EXTENSION)) {
+                        backupCount++;
+                    } else if (file.getName().endsWith(".zip")) {
+                        romCount++;
+                    }
+                }
+
+                Log.d(TAG, "ROM 파일: " + romCount);
+                Log.d(TAG, "임시 파일: " + tempCount);
+                Log.d(TAG, "백업 파일: " + backupCount);
+            } else {
+                Log.d(TAG, "파일 목록을 가져올 수 없음");
+            }
+
+            Log.d(TAG, "========================");
+
+        } catch (Exception e) {
+            Log.e(TAG, "ROMs 디렉토리 상태 확인 중 오류", e);
+        }
     }
 }

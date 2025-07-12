@@ -1,5 +1,7 @@
 package com.ingcorp.webhard;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -18,6 +20,9 @@ import com.ingcorp.webhard.base.Constants;
 import com.ingcorp.webhard.helpers.UtilHelper;
 import com.ingcorp.webhard.manager.AdMobManager;
 import com.ingcorp.webhard.manager.GameListManager;
+
+import java.io.File;
+import java.util.Map;
 
 public class MainActivity extends FragmentActivity {
 
@@ -59,6 +64,106 @@ public class MainActivity extends FragmentActivity {
 
         // 전면광고 미리 로드
         loadInterstitialAd();
+
+        // 앱 시작시 임시 파일 정리
+        initializeAndCleanup();
+    }
+
+    /**
+     * 앱 초기화 및 정리 작업을 수행하는 메서드
+     */
+    private void initializeAndCleanup() {
+        // 백그라운드 스레드에서 정리 작업 수행
+        new Thread(() -> {
+            try {
+                UtilHelper utilHelper = UtilHelper.getInstance(this);
+
+                // ROMs 경로 가져오기
+                String romsPath = getRomsPath();
+                if (romsPath != null) {
+                    Log.d(Constants.LOG_TAG, "앱 시작시 정리 작업 시작");
+
+                    // 디렉토리 상태 로깅
+                    utilHelper.logRomsDirectoryStatus(romsPath);
+
+                    // 임시 파일들 정리
+                    utilHelper.cleanupAllTemporaryFiles(romsPath);
+
+                    // 진행 중이던 다운로드 상태들 정리
+                    cleanupDownloadStates(utilHelper);
+
+                    Log.d(Constants.LOG_TAG, "앱 시작시 정리 작업 완료");
+                } else {
+                    Log.e(Constants.LOG_TAG, "ROMs 경로를 가져올 수 없어 정리 작업을 건너뜀");
+                }
+
+            } catch (Exception e) {
+                Log.e(Constants.LOG_TAG, "앱 시작시 정리 작업 중 오류", e);
+            }
+        }).start();
+    }
+
+    /**
+     * ROMs 디렉토리 경로를 가져오는 메서드 (GameFragment와 동일한 로직)
+     */
+    private String getRomsPath() {
+        try {
+            File appDir = getExternalFilesDir(null);
+            if (appDir != null) {
+                File romsDir = new File(appDir, "roms");
+                if (!romsDir.exists()) romsDir.mkdirs();
+                return romsDir.getAbsolutePath();
+            }
+
+            File fallbackDir = new File(getFilesDir(), "roms");
+            if (!fallbackDir.exists()) fallbackDir.mkdirs();
+            return fallbackDir.getAbsolutePath();
+
+        } catch (Exception e) {
+            Log.e(Constants.LOG_TAG, "Error getting roms path", e);
+            return null;
+        }
+    }
+
+    /**
+     * 진행 중이던 다운로드 상태들을 정리하는 메서드
+     */
+    private void cleanupDownloadStates(UtilHelper utilHelper) {
+        try {
+            Log.d(Constants.LOG_TAG, "다운로드 상태 정리 시작");
+
+            // SharedPreferences에서 download_state_로 시작하는 모든 키를 찾아서 정리
+            SharedPreferences prefs = getSharedPreferences("WebHardPrefs", Context.MODE_PRIVATE);
+            Map<String, ?> allPrefs = prefs.getAll();
+
+            SharedPreferences.Editor editor = prefs.edit();
+            int cleanedCount = 0;
+
+            for (String key : allPrefs.keySet()) {
+                if (key.startsWith("download_state_")) {
+                    String value = (String) allPrefs.get(key);
+
+                    // downloading 상태로 남아있는 것들은 정리
+                    if (value != null && value.startsWith("downloading")) {
+                        editor.putString(key, "none");
+                        cleanedCount++;
+
+                        String romFileName = key.replace("download_state_", "");
+                        Log.d(Constants.LOG_TAG, "미완료 다운로드 상태 정리: " + romFileName);
+                    }
+                }
+            }
+
+            if (cleanedCount > 0) {
+                editor.apply();
+                Log.d(Constants.LOG_TAG, "다운로드 상태 " + cleanedCount + "개 정리됨");
+            } else {
+                Log.d(Constants.LOG_TAG, "정리할 다운로드 상태 없음");
+            }
+
+        } catch (Exception e) {
+            Log.e(Constants.LOG_TAG, "다운로드 상태 정리 중 오류", e);
+        }
     }
 
     /**

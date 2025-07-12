@@ -33,7 +33,7 @@ public class MainActivity extends FragmentActivity {
     private LinearLayout tabLayout;
     private int selectedTabIndex = 0;
     private GameListManager gameListManager;
-    private String[] tabs; // 리소스에서 로드할 탭 배열
+    private String[] tabs;
 
     // AdMob 관련
     private AdMobManager adMobManager;
@@ -44,35 +44,28 @@ public class MainActivity extends FragmentActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // ✅ 1. GameListManager를 가장 먼저 초기화
+        // GameListManager를 가장 먼저 초기화
         gameListManager = new GameListManager(this);
-        Log.d(Constants.LOG_TAG, "GameListManager 생성됨: " + (gameListManager != null));
 
-        // ✅ 2. 즉시 정적 변수에 설정 (다른 모든 초기화 전에!)
+        // 즉시 정적 변수에 설정
         GameFragment.setGameListManager(gameListManager);
-        Log.d(Constants.LOG_TAG, "정적 GameListManager 설정 완료");
 
-        // ✅ 3. setContentView 호출 (여기서 Fragment들이 생성될 수 있음)
+        // setContentView 호출
         setContentView(R.layout.activity_main);
 
-        // ✅ 4. tabs 배열 로드
+        // tabs 배열 로드
         tabs = getGameTabs();
-        Log.d(Constants.LOG_TAG, "탭 배열 로드됨 - 개수: " + (tabs != null ? tabs.length : 0));
 
-        // ✅ 5. 다른 매니저들 초기화
+        // 다른 매니저들 초기화
         adMobManager = AdMobManager.getInstance(this);
         utilHelper = UtilHelper.getInstance(this);
 
-        // ✅ 6. UI 컴포넌트 초기화
+        // UI 컴포넌트 초기화
         initViews();
         createTabs();
-
-        // ✅ 7. ViewPager 설정 (이제 GameListManager가 이미 설정되어 있음)
-        Log.d(Constants.LOG_TAG, "setupViewPager 호출 전 GameListManager 상태: " +
-                (gameListManager != null ? "정상" : "NULL"));
         setupViewPager();
 
-        // 나머지 초기화...
+        // 나머지 초기화
         loadCollapsibleBannerIfEnabled();
         loadInterstitialAd();
         initializeAndCleanup();
@@ -113,7 +106,7 @@ public class MainActivity extends FragmentActivity {
     }
 
     /**
-     * ROMs 디렉토리 경로를 가져오는 메서드 (GameFragment와 동일한 로직)
+     * ROMs 디렉토리 경로를 가져오는 메서드
      */
     private String getRomsPath() {
         try {
@@ -139,8 +132,6 @@ public class MainActivity extends FragmentActivity {
      */
     private void cleanupDownloadStates(UtilHelper utilHelper) {
         try {
-            Log.d(Constants.LOG_TAG, "다운로드 상태 정리 시작");
-
             // SharedPreferences에서 download_state_로 시작하는 모든 키를 찾아서 정리
             SharedPreferences prefs = getSharedPreferences("WebHardPrefs", Context.MODE_PRIVATE);
             Map<String, ?> allPrefs = prefs.getAll();
@@ -156,9 +147,6 @@ public class MainActivity extends FragmentActivity {
                     if (value != null && value.startsWith("downloading")) {
                         editor.putString(key, "none");
                         cleanedCount++;
-
-                        String romFileName = key.replace("download_state_", "");
-                        Log.d(Constants.LOG_TAG, "미완료 다운로드 상태 정리: " + romFileName);
                     }
                 }
             }
@@ -166,8 +154,6 @@ public class MainActivity extends FragmentActivity {
             if (cleanedCount > 0) {
                 editor.apply();
                 Log.d(Constants.LOG_TAG, "다운로드 상태 " + cleanedCount + "개 정리됨");
-            } else {
-                Log.d(Constants.LOG_TAG, "정리할 다운로드 상태 없음");
             }
 
         } catch (Exception e) {
@@ -186,13 +172,8 @@ public class MainActivity extends FragmentActivity {
      * 탭 개수를 반환하는 헬퍼 메서드
      */
     private int getTabCount() {
-        // ✅ GamePagerAdapter의 TABS 배열 길이와 일치시키기
         return 6; // {"ALL", "FIGHT", "ACTION", "SHOOTING", "SPORTS", "PUZZLE"}
-
-        // 또는 더 안전하게:
-        // return tabs != null ? tabs.length : 6;
     }
-
 
     private void initViews() {
         viewPager = findViewById(R.id.view_pager);
@@ -219,7 +200,7 @@ public class MainActivity extends FragmentActivity {
             final int index = i;
             tabView.setOnClickListener(v -> selectTab(index));
 
-            tabViews[i] = tabText; // TextView 참조 저장
+            tabViews[i] = tabText;
             tabLayout.addView(tabView);
         }
 
@@ -232,11 +213,6 @@ public class MainActivity extends FragmentActivity {
             return;
         }
 
-        Log.d(Constants.LOG_TAG, "ViewPager 설정 시작 - GameListManager 정상");
-        Log.d(Constants.LOG_TAG, "어댑터 생성 직전 GameListManager 상태: " +
-                (gameListManager != null ? "정상" : "NULL"));
-
-        // ✅ GameFragment에 정적으로 GameListManager 설정
         GameFragment.setGameListManager(gameListManager);
 
         GamePagerAdapter adapter = new GamePagerAdapter(
@@ -244,8 +220,6 @@ public class MainActivity extends FragmentActivity {
                 getLifecycle(),
                 gameListManager
         );
-
-        Log.d(Constants.LOG_TAG, "어댑터 생성 완료");
 
         viewPager.setAdapter(adapter);
         viewPager.setOffscreenPageLimit(getTabCount());
@@ -258,8 +232,6 @@ public class MainActivity extends FragmentActivity {
                 scrollToSelectedTab(position);
             }
         });
-
-        Log.d(Constants.LOG_TAG, "ViewPager 설정 완료 - GameListManager: " + (gameListManager != null));
     }
 
     private void selectTab(int index) {
@@ -282,17 +254,15 @@ public class MainActivity extends FragmentActivity {
                 tabText.setTextSize(18);
                 tabText.setTypeface(null, android.graphics.Typeface.BOLD);
 
-                // 인디케이터 표시
                 if (indicator != null) {
                     indicator.setVisibility(View.VISIBLE);
                 }
             } else {
                 // 선택되지 않은 탭: 희미한 흰색 + 인디케이터 숨김
-                tabText.setTextColor(android.graphics.Color.argb(128, 255, 255, 255)); // 50% 투명도의 흰색
+                tabText.setTextColor(android.graphics.Color.argb(128, 255, 255, 255));
                 tabText.setTextSize(16);
                 tabText.setTypeface(null, android.graphics.Typeface.NORMAL);
 
-                // 인디케이터 숨김
                 if (indicator != null) {
                     indicator.setVisibility(View.GONE);
                 }
@@ -312,12 +282,11 @@ public class MainActivity extends FragmentActivity {
     private void loadCollapsibleBannerIfEnabled() {
         // 배너 광고 설정 확인
         if (!utilHelper.isAdBannerEnabled()) {
-            Log.d(Constants.LOG_TAG, "배너 광고가 비활성화됨 - 광고 로드하지 않음");
+            Log.d(Constants.LOG_TAG, "배너 광고가 비활성화됨");
             adContainerView.setVisibility(View.GONE);
             return;
         }
 
-        Log.d(Constants.LOG_TAG, "배너 광고가 활성화됨 - 광고 로드 시작");
         loadCollapsibleBanner();
     }
 
@@ -326,15 +295,12 @@ public class MainActivity extends FragmentActivity {
             adMobManager.loadCollapsibleBanner(this, adContainerView, new AdMobManager.OnBannerAdLoadedListener() {
                 @Override
                 public void onAdLoaded(AdView adView) {
-                    Log.d(Constants.LOG_TAG, "배너 광고 로드 성공");
-                    // 광고 로드 성공 시 배너 컨테이너 표시
                     adContainerView.setVisibility(View.VISIBLE);
                 }
 
                 @Override
                 public void onAdLoadFailed(String error) {
                     Log.e(Constants.LOG_TAG, "배너 광고 로드 실패: " + error);
-                    // 광고 로드 실패 시 배너 컨테이너 숨김
                     adContainerView.setVisibility(View.GONE);
                 }
             });
@@ -346,22 +312,22 @@ public class MainActivity extends FragmentActivity {
             adMobManager.loadInterstitialAd(new AdMobManager.OnInterstitialAdLoadedListener() {
                 @Override
                 public void onAdLoaded() {
-                    Log.d(Constants.LOG_TAG, "전면광고 미리 로드 완료");
+                    // 전면광고 로드 완료
                 }
 
                 @Override
                 public void onAdLoadFailed(String error) {
-                    Log.e(Constants.LOG_TAG, "전면광고 미리 로드 실패: " + error);
+                    Log.e(Constants.LOG_TAG, "전면광고 로드 실패: " + error);
                 }
 
                 @Override
                 public void onAdClosed() {
-                    Log.d(Constants.LOG_TAG, "전면광고 닫힌 후 자동으로 다음 광고 로드됨");
+                    // 전면광고 닫힌 후 처리
                 }
 
                 @Override
                 public void onAdShown() {
-                    Log.d(Constants.LOG_TAG, "전면광고 표시됨");
+                    // 전면광고 표시됨
                 }
 
                 @Override
@@ -390,7 +356,6 @@ public class MainActivity extends FragmentActivity {
         }
         if (adMobManager != null) {
             adMobManager.destroyBannerAd();
-            // 전면광고는 자동으로 해제되므로 별도 메서드 불필요
         }
     }
 }

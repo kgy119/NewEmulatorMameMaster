@@ -27,6 +27,9 @@ public class UtilHelper {
     private Context context;
     private static UtilHelper instance;
 
+    private android.app.ProgressDialog progressDialog;
+
+
     // 싱글톤 패턴 적용
     private UtilHelper(Context context) {
         this.context = context.getApplicationContext();
@@ -38,6 +41,7 @@ public class UtilHelper {
         }
         return instance;
     }
+
 
     // 기기 정보 로깅 (static 메서드 - Context 매개변수 포함)
     public static void logDeviceInfo(Context context) {
@@ -344,43 +348,6 @@ public class UtilHelper {
         } catch (Exception e) {
             Log.e(TAG, "게임 네트워크 에러 다이얼로그 표시 중 예외 발생: " + e.getMessage(), e);
         }
-    }
-
-    // 네트워크 재시도 다이얼로그 - 테마 적용
-    public void showNetworkRetryDialog(android.app.Activity activity, Runnable onRetryCallback) {
-        if (activity == null || activity.isFinishing()) {
-            return;
-        }
-
-        new android.app.AlertDialog.Builder(activity, R.style.DialogTheme)
-                .setTitle("No Internet Connection")
-                .setMessage("This app requires an internet connection to function properly. Please check your network settings and try again.")
-                .setPositiveButton("Retry", (dialog, which) -> {
-                    Log.d(TAG, "Network retry requested");
-                    if (onRetryCallback != null) {
-                        onRetryCallback.run();
-                    }
-                })
-                .setNegativeButton("Exit", (dialog, which) -> {
-                    Log.d(TAG, "Network error - user chose to exit");
-                    activity.finish();
-                    System.exit(0);
-                })
-                .setCancelable(false)
-                .show();
-    }
-
-    // 추가적인 범용 다이얼로그 메서드들
-    public void showInfoDialog(android.app.Activity activity, String title, String message) {
-        if (activity == null || activity.isFinishing()) {
-            return;
-        }
-
-        new android.app.AlertDialog.Builder(activity, R.style.DialogTheme)
-                .setTitle(title)
-                .setMessage(message)
-                .setPositiveButton("OK", null)
-                .show();
     }
 
     public void showConfirmDialog(android.app.Activity activity, String title, String message,

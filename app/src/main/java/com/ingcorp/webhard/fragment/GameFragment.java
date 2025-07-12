@@ -1,6 +1,9 @@
 package com.ingcorp.webhard.fragment;
 
+import android.app.ProgressDialog;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -22,6 +25,7 @@ import com.ingcorp.webhard.model.GameItem;
 import com.ingcorp.webhard.network.ApiService;
 import com.ingcorp.webhard.network.NetworkClient;
 import com.ingcorp.webhard.MAME4droid;
+import com.ingcorp.webhard.network.ProgressInterceptor;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -46,6 +50,9 @@ public class GameFragment extends Fragment {
     private View emptyView;
     private boolean isDataLoaded = false;
     private UtilHelper utilHelper;
+    private ProgressDialog progressDialog;
+    private Handler mainHandler = new Handler(Looper.getMainLooper());
+
 
     public static GameFragment newInstance(int position, GameListManager gameListManager) {
         GameFragment fragment = new GameFragment();
@@ -250,30 +257,6 @@ public class GameFragment extends Fragment {
         }
     }
 
-    private void checkRomAndLaunchGame(Game game) {
-        if (getContext() == null) return;
-
-        String romFileName = game.getGameRom();
-        if (romFileName == null || romFileName.isEmpty()) {
-            showToast("ROM 파일 정보가 없습니다.");
-            return;
-        }
-
-        String romsPath = getRomsPath();
-        if (romsPath == null) {
-            showToast("ROM 저장 경로를 찾을 수 없습니다.");
-            return;
-        }
-
-        File romFile = new File(romsPath, romFileName);
-
-        if (romFile.exists()) {
-            launchGame(game, romFile.getAbsolutePath());
-        } else {
-            downloadAndLaunchGame(game, romFileName, romsPath);
-        }
-    }
-
     private String getRomsPath() {
         try {
             File appDir = getContext().getExternalFilesDir(null);
@@ -293,60 +276,6 @@ public class GameFragment extends Fragment {
         }
     }
 
-    private void downloadAndLaunchGame(Game game, String romFileName, String romsPath) {
-        String downloadUrl = Constants.BASE_ROM_URL + game.getGameRom();
-        showToast("ROM 파일을 다운로드하는 중...");
-
-        ApiService apiService = NetworkClient.getApiService();
-        Call<ResponseBody> call = apiService.downloadRom(downloadUrl);
-
-        call.enqueue(new Callback<ResponseBody>() {
-            @Override
-            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    new Thread(() -> {
-                        try {
-                            File romFile = new File(romsPath, romFileName);
-                            FileOutputStream fos = new FileOutputStream(romFile);
-
-                            InputStream inputStream = response.body().byteStream();
-                            byte[] buffer = new byte[4096];
-                            int bytesRead;
-
-                            while ((bytesRead = inputStream.read(buffer)) != -1) {
-                                fos.write(buffer, 0, bytesRead);
-                            }
-
-                            fos.close();
-                            inputStream.close();
-
-                            if (getActivity() != null) {
-                                getActivity().runOnUiThread(() -> {
-                                    showToast("다운로드 완료! 게임을 시작합니다.");
-                                    launchGame(game, romFile.getAbsolutePath());
-                                });
-                            }
-
-                        } catch (Exception e) {
-                            Log.e(Constants.LOG_TAG, "Error saving ROM file", e);
-                            if (getActivity() != null) {
-                                getActivity().runOnUiThread(() ->
-                                        showToast("ROM 파일 저장에 실패했습니다."));
-                            }
-                        }
-                    }).start();
-                } else {
-                    showToast("ROM 다운로드에 실패했습니다. (응답 오류)");
-                }
-            }
-
-            @Override
-            public void onFailure(Call<ResponseBody> call, Throwable t) {
-                Log.e(Constants.LOG_TAG, "ROM download failed", t);
-                showToast("ROM 다운로드에 실패했습니다: " + t.getMessage());
-            }
-        });
-    }
 
     private void launchGame(Game game, String romFilePath) {
         try {
@@ -357,12 +286,12 @@ public class GameFragment extends Fragment {
             intent.putExtra("game_name", game.getGameName());
             intent.putExtra("game_id", game.getGameId());
 
-            showToast("게임을 시작합니다: " + game.getGameName());
+            showToast("Starting game: " + game.getGameName());
             startActivity(intent);
 
         } catch (Exception e) {
             Log.e(Constants.LOG_TAG, "Error launching game", e);
-            showToast("게임 실행에 실패했습니다: " + e.getMessage());
+            showToast("Failed to launch game: " + e.getMessage());
         }
     }
 
@@ -371,6 +300,158 @@ public class GameFragment extends Fragment {
             android.widget.Toast.makeText(getContext(), message, android.widget.Toast.LENGTH_SHORT).show();
         }
     }
+
+    private void downloadAndLaunchGameWithProgress(Game game, String romFileName, String romsPath) {
+        String downloadUrl = Constants.BASE_ROM_URL + game.getGameRom();
+
+        // 프로그레스 다이얼로그 표시
+        showProgressDialog(game.getGameName());
+
+        // 프로그레스 리스너 생성
+        ProgressInterceptor.ProgressListener progressListener = new ProgressInterceptor.ProgressListener() {
+            @Override
+            public void onProgress(long bytesRead, long contentLength, boolean done) {
+                if (contentLength > 0) {
+                    int progress = (int) ((bytesRead * 100) / contentLength);
+
+                    // UI 스레드에서 프로그레스 업데이트
+                    mainHandler.post(() -> {
+                        updateProgress(progress);
+
+                        if (done) {
+                            Log.d(Constants.LOG_TAG, "Download completed via Retrofit Progress");
+                        }
+                    });
+                }
+            }
+        };
+
+        // 프로그레스 지원 API 서비스 생성
+        ApiService progressApiService = NetworkClient.getProgressApiService(progressListener);
+        Call<ResponseBody> call = progressApiService.downloadRom(downloadUrl);
+
+        call.enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    // 백그라운드에서 파일 저장
+                    new Thread(() -> {
+                        try {
+                            File romFile = new File(romsPath, romFileName);
+                            FileOutputStream fos = new FileOutputStream(romFile);
+                            InputStream inputStream = response.body().byteStream();
+
+                            byte[] buffer = new byte[4096];
+                            int bytesRead;
+
+                            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                                fos.write(buffer, 0, bytesRead);
+                            }
+
+                            fos.close();
+                            inputStream.close();
+
+                            // UI 스레드에서 완료 처리
+                            mainHandler.post(() -> {
+                                hideProgressDialog();
+                                // 다운로드 완료 후 바로 게임 실행
+                                launchGame(game, romFile.getAbsolutePath());
+                            });
+
+
+                        } catch (Exception e) {
+                            Log.e(Constants.LOG_TAG, "Error saving ROM file", e);
+                            mainHandler.post(() -> {
+                                hideProgressDialog();
+                                showDownloadError(e.getMessage());
+                            });
+                        }
+                    }).start();
+                } else {
+                    hideProgressDialog();
+                    showDownloadError("Server response error");
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                Log.e(Constants.LOG_TAG, "ROM download failed", t);
+                hideProgressDialog();
+                showDownloadError(t.getMessage());
+            }
+        });
+    }
+
+    private void showProgressDialog(String gameName) {
+        if (getActivity() != null && !getActivity().isFinishing()) {
+            progressDialog = new ProgressDialog(getActivity(), R.style.DialogTheme);
+            progressDialog.setTitle(gameName); // 타이틀에 게임이름 포함
+            progressDialog.setMessage(""); // 메시지는 빈 문자열
+            progressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+            progressDialog.setMax(100);
+            progressDialog.setProgress(0);
+            progressDialog.setCancelable(false);
+            progressDialog.setCanceledOnTouchOutside(false);
+            progressDialog.show();
+        }
+    }
+
+    private void updateProgress(int progress) {
+        if (progressDialog != null && progressDialog.isShowing()) {
+            progressDialog.setProgress(progress);
+            // 메시지는 변경하지 않음 (게임 이름만 계속 표시)
+        }
+    }
+
+
+    private void hideProgressDialog() {
+        if (progressDialog != null && progressDialog.isShowing()) {
+            progressDialog.dismiss();
+            progressDialog = null;
+        }
+    }
+
+    private void showDownloadError(String error) {
+        if (getActivity() != null) {
+            utilHelper.showCustomDialog(
+                    (android.app.Activity) getActivity(),
+                    "Download Failed",
+                    "Failed to download ROM file.\nError: " + error,
+                    "OK",
+                    null,
+                    null,
+                    null
+            );
+        }
+    }
+
+    // checkRomAndLaunchGame 메서드에서 호출 변경
+    private void checkRomAndLaunchGame(Game game) {
+        if (getContext() == null) return;
+
+        String romFileName = game.getGameRom();
+        if (romFileName == null || romFileName.isEmpty()) {
+            showToast("ROM file information not available.");
+            return;
+        }
+
+        String romsPath = getRomsPath();
+        if (romsPath == null) {
+            showToast("Cannot find ROM storage path.");
+            return;
+        }
+
+        File romFile = new File(romsPath, romFileName);
+
+        if (romFile.exists()) {
+            Log.d(Constants.LOG_TAG, "ROM file exists, launching game directly");
+            launchGame(game, romFile.getAbsolutePath());
+        } else {
+            Log.d(Constants.LOG_TAG, "ROM file not found, starting Retrofit progress download");
+            downloadAndLaunchGameWithProgress(game, romFileName, romsPath);
+        }
+    }
+
 
     @Override
     public void onResume() {

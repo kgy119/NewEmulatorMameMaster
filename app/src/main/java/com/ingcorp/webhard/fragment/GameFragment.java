@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.ingcorp.webhard.R;
 import com.ingcorp.webhard.adapter.GameAdapter;
+import com.ingcorp.webhard.base.Constants;
 import com.ingcorp.webhard.database.entity.Game;
 import com.ingcorp.webhard.helpers.UtilHelper;
 import com.ingcorp.webhard.manager.GameListManager;
@@ -36,12 +37,11 @@ import retrofit2.Response;
 
 public class GameFragment extends Fragment {
     private static final String ARG_POSITION = "position";
-    private static final String[] CATEGORIES = {"ALL", "FIGHT", "ACTION", "SHOOTING", "SPORTS", "PUZZLE"};
 
     private GameListManager gameListManager;
     private RecyclerView recyclerView;
     private GameAdapter gameAdapter;
-    private List<BaseItem> itemList; // Game 대신 BaseItem 사용
+    private List<BaseItem> itemList;
     private View loadingView;
     private View emptyView;
     private boolean isDataLoaded = false;
@@ -72,6 +72,21 @@ public class GameFragment extends Fragment {
         return view;
     }
 
+    /**
+     * 게임 카테고리 배열을 가져오는 헬퍼 메서드
+     */
+    private String[] getGameCategories() {
+        return getResources().getStringArray(R.array.game_categories);
+    }
+
+    /**
+     * 특정 위치의 게임 카테고리를 가져오는 헬퍼 메서드
+     */
+    private String getCategoryByPosition(int position) {
+        String[] categories = getGameCategories();
+        return (position >= 0 && position < categories.length) ? categories[position] : categories[0];
+    }
+
     private void initViews(View view) {
         recyclerView = view.findViewById(R.id.recycler_view_games);
         loadingView = view.findViewById(R.id.loading_view);
@@ -85,7 +100,6 @@ public class GameFragment extends Fragment {
         gridLayoutManager.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
             @Override
             public int getSpanSize(int position) {
-                // 광고와 게임 모두 1칸씩 차지
                 return 1;
             }
         });
@@ -93,7 +107,7 @@ public class GameFragment extends Fragment {
         recyclerView.setLayoutManager(gridLayoutManager);
 
         itemList = new ArrayList<>();
-        gameAdapter = new GameAdapter(itemList, getContext()); // 수정된 어댑터
+        gameAdapter = new GameAdapter(itemList, getContext());
 
         gameAdapter.setOnGameClickListener(new GameAdapter.OnGameClickListener() {
             @Override
@@ -103,19 +117,18 @@ public class GameFragment extends Fragment {
 
             @Override
             public void onGameLongClick(Game game) {
-                showGameInfo(game);
+                // showGameInfo(game);
             }
         });
 
         recyclerView.setAdapter(gameAdapter);
     }
 
-
     private void loadGames(int position) {
         if (isDataLoaded) return;
 
         showLoading(true);
-        String category = CATEGORIES[position];
+        String category = getCategoryByPosition(position);
 
         gameListManager.getGamesByCategory(category, new GameListManager.GameListListener() {
             @Override
@@ -157,16 +170,16 @@ public class GameFragment extends Fragment {
         // 네이티브 광고 주기 가져오기
         int adNativeCnt = utilHelper.getAdNativeCount();
 
-        Log.d("GameFragment", "=== 통합 리스트 생성 시작 ===");
-        Log.d("GameFragment", "게임 수: " + games.size());
-        Log.d("GameFragment", "광고 주기: " + adNativeCnt);
+        Log.d(Constants.LOG_TAG, "=== 통합 리스트 생성 시작 ===");
+        Log.d(Constants.LOG_TAG, "게임 수: " + games.size());
+        Log.d(Constants.LOG_TAG, "광고 주기: " + adNativeCnt);
 
         if (adNativeCnt <= 0 || games.size() < 3) {
             // 광고 주기가 0 이하이거나 게임이 3개 미만이면 광고 없이 게임만 추가
             for (Game game : games) {
                 unifiedList.add(new GameItem(game));
             }
-            Log.d("GameFragment", "광고 없이 게임만 추가 (게임: " + games.size() + "개)");
+            Log.d(Constants.LOG_TAG, "광고 없이 게임만 추가 (게임: " + games.size() + "개)");
             return unifiedList;
         }
 
@@ -187,7 +200,7 @@ public class GameFragment extends Fragment {
                 adInsertPosition = 1 + random.nextInt(groupSize - 2);
             }
 
-            Log.d("GameFragment", "그룹 [" + startIdx + "-" + (endIdx-1) + "], 크기: " + groupSize +
+            Log.d(Constants.LOG_TAG, "그룹 [" + startIdx + "-" + (endIdx-1) + "], 크기: " + groupSize +
                     ", 광고 삽입 위치: " + adInsertPosition);
 
             // 그룹의 게임들을 순서대로 추가하면서 중간에 광고 삽입
@@ -195,7 +208,7 @@ public class GameFragment extends Fragment {
                 // 광고 삽입 위치에 도달하면 광고 먼저 추가
                 if (i == adInsertPosition) {
                     unifiedList.add(new AdItem());
-                    Log.d("GameFragment", "위치 " + unifiedList.size() + "에 광고 삽입");
+                    Log.d(Constants.LOG_TAG, "위치 " + unifiedList.size() + "에 광고 삽입");
                 }
 
                 // 게임 추가
@@ -203,21 +216,20 @@ public class GameFragment extends Fragment {
             }
         }
 
-        Log.d("GameFragment", "최종 통합 리스트 크기: " + unifiedList.size());
+        Log.d(Constants.LOG_TAG, "최종 통합 리스트 크기: " + unifiedList.size());
 
         // 디버그: 리스트 구성 출력
         for (int i = 0; i < unifiedList.size(); i++) {
             BaseItem item = unifiedList.get(i);
             String type = item.getItemType() == BaseItem.TYPE_AD ? "광고" : "게임";
-            Log.d("GameFragment", "위치 " + i + ": " + type);
+            Log.d(Constants.LOG_TAG, "위치 " + i + ": " + type);
         }
 
-        Log.d("GameFragment", "=========================");
+        Log.d(Constants.LOG_TAG, "=========================");
 
         return unifiedList;
     }
 
-    // 나머지 메서드들은 동일...
     private void showLoading(boolean show) {
         if (show) {
             recyclerView.setVisibility(View.GONE);
@@ -228,7 +240,7 @@ public class GameFragment extends Fragment {
 
     private void showGameInfo(Game game) {
         if (getContext() != null) {
-            new android.app.AlertDialog.Builder(getContext())
+            new android.app.AlertDialog.Builder(getContext(), R.style.DialogTheme)
                     .setTitle(game.getGameName())
                     .setMessage("카테고리: " + game.getGameCate() + "\n" +
                             "ROM 파일: " + game.getGameRom() + "\n" +
@@ -237,7 +249,6 @@ public class GameFragment extends Fragment {
                     .show();
         }
     }
-
 
     private void checkRomAndLaunchGame(Game game) {
         if (getContext() == null) return;
@@ -277,13 +288,13 @@ public class GameFragment extends Fragment {
             return fallbackDir.getAbsolutePath();
 
         } catch (Exception e) {
-            android.util.Log.e("GameFragment", "Error getting roms path", e);
+            Log.e(Constants.LOG_TAG, "Error getting roms path", e);
             return null;
         }
     }
 
     private void downloadAndLaunchGame(Game game, String romFileName, String romsPath) {
-        String downloadUrl = "http://retrogamemaster.net/r2/" + game.getGameRom();
+        String downloadUrl = Constants.BASE_ROM_URL + game.getGameRom();
         showToast("ROM 파일을 다운로드하는 중...");
 
         ApiService apiService = NetworkClient.getApiService();
@@ -317,7 +328,7 @@ public class GameFragment extends Fragment {
                             }
 
                         } catch (Exception e) {
-                            android.util.Log.e("GameFragment", "Error saving ROM file", e);
+                            Log.e(Constants.LOG_TAG, "Error saving ROM file", e);
                             if (getActivity() != null) {
                                 getActivity().runOnUiThread(() ->
                                         showToast("ROM 파일 저장에 실패했습니다."));
@@ -331,7 +342,7 @@ public class GameFragment extends Fragment {
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
-                android.util.Log.e("GameFragment", "ROM download failed", t);
+                Log.e(Constants.LOG_TAG, "ROM download failed", t);
                 showToast("ROM 다운로드에 실패했습니다: " + t.getMessage());
             }
         });
@@ -350,7 +361,7 @@ public class GameFragment extends Fragment {
             startActivity(intent);
 
         } catch (Exception e) {
-            android.util.Log.e("GameFragment", "Error launching game", e);
+            Log.e(Constants.LOG_TAG, "Error launching game", e);
             showToast("게임 실행에 실패했습니다: " + e.getMessage());
         }
     }

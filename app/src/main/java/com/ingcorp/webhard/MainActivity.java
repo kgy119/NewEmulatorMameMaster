@@ -10,20 +10,16 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.fragment.app.FragmentActivity;
-import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.google.android.gms.ads.AdView;
-import com.ingcorp.webhard.adapter.GameAdapter;
 import com.ingcorp.webhard.adapter.GamePagerAdapter;
+import com.ingcorp.webhard.base.Constants;
 import com.ingcorp.webhard.helpers.UtilHelper;
 import com.ingcorp.webhard.manager.AdMobManager;
 import com.ingcorp.webhard.manager.GameListManager;
 
 public class MainActivity extends FragmentActivity {
-
-    private String TAG = "mame00";
-    private static final String[] TABS = {"ALL", "FIGHT", "ACTION", "SHOOTING", "SPORTS", "PUZZLE"};
 
     private TextView[] tabViews;
     private ViewPager2 viewPager;
@@ -31,9 +27,7 @@ public class MainActivity extends FragmentActivity {
     private LinearLayout tabLayout;
     private int selectedTabIndex = 0;
     private GameListManager gameListManager;
-
-    private GameAdapter gameAdapter; // 클래스 멤버 변수로 선언
-    private RecyclerView recyclerView;
+    private String[] tabs; // 리소스에서 로드할 탭 배열
 
     // AdMob 관련
     private AdMobManager adMobManager;
@@ -46,6 +40,9 @@ public class MainActivity extends FragmentActivity {
 
         gameListManager = new GameListManager(this);
         setContentView(R.layout.activity_main);
+
+        // 리소스에서 탭 배열 로드
+        tabs = getGameTabs();
 
         // AdMobManager 인스턴스 가져오기
         adMobManager = AdMobManager.getInstance(this);
@@ -64,6 +61,20 @@ public class MainActivity extends FragmentActivity {
         loadInterstitialAd();
     }
 
+    /**
+     * 게임 탭 배열을 가져오는 헬퍼 메서드
+     */
+    private String[] getGameTabs() {
+        return getResources().getStringArray(R.array.game_categories);
+    }
+
+    /**
+     * 탭 개수를 반환하는 헬퍼 메서드
+     */
+    private int getTabCount() {
+        return tabs != null ? tabs.length : 0;
+    }
+
     private void initViews() {
         viewPager = findViewById(R.id.view_pager);
         tabScrollView = findViewById(R.id.tab_scroll_view);
@@ -72,13 +83,19 @@ public class MainActivity extends FragmentActivity {
     }
 
     private void createTabs() {
-        tabViews = new TextView[TABS.length];
+        int tabCount = getTabCount();
+        if (tabCount == 0) {
+            Log.e(Constants.LOG_TAG, "탭 배열이 비어있습니다.");
+            return;
+        }
+
+        tabViews = new TextView[tabCount];
         LayoutInflater inflater = getLayoutInflater();
 
-        for (int i = 0; i < TABS.length; i++) {
+        for (int i = 0; i < tabCount; i++) {
             View tabView = inflater.inflate(R.layout.tab_item, tabLayout, false);
             TextView tabText = tabView.findViewById(R.id.tab_text);
-            tabText.setText(TABS[i]);
+            tabText.setText(tabs[i]);
 
             final int index = i;
             tabView.setOnClickListener(v -> selectTab(index));
@@ -94,7 +111,7 @@ public class MainActivity extends FragmentActivity {
         GamePagerAdapter adapter = new GamePagerAdapter(getSupportFragmentManager(), getLifecycle(), gameListManager);
         viewPager.setAdapter(adapter);
 
-        viewPager.setOffscreenPageLimit(TABS.length);
+        viewPager.setOffscreenPageLimit(getTabCount());
         viewPager.setUserInputEnabled(true);
 
         viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
@@ -156,12 +173,12 @@ public class MainActivity extends FragmentActivity {
     private void loadCollapsibleBannerIfEnabled() {
         // 배너 광고 설정 확인
         if (!utilHelper.isAdBannerEnabled()) {
-            Log.d(TAG, "배너 광고가 비활성화됨 - 광고 로드하지 않음");
+            Log.d(Constants.LOG_TAG, "배너 광고가 비활성화됨 - 광고 로드하지 않음");
             adContainerView.setVisibility(View.GONE);
             return;
         }
 
-        Log.d(TAG, "배너 광고가 활성화됨 - 광고 로드 시작");
+        Log.d(Constants.LOG_TAG, "배너 광고가 활성화됨 - 광고 로드 시작");
         loadCollapsibleBanner();
     }
 
@@ -170,14 +187,14 @@ public class MainActivity extends FragmentActivity {
             adMobManager.loadCollapsibleBanner(this, adContainerView, new AdMobManager.OnBannerAdLoadedListener() {
                 @Override
                 public void onAdLoaded(AdView adView) {
-                    Log.d(TAG, "배너 광고 로드 성공");
+                    Log.d(Constants.LOG_TAG, "배너 광고 로드 성공");
                     // 광고 로드 성공 시 배너 컨테이너 표시
                     adContainerView.setVisibility(View.VISIBLE);
                 }
 
                 @Override
                 public void onAdLoadFailed(String error) {
-                    Log.e(TAG, "배너 광고 로드 실패: " + error);
+                    Log.e(Constants.LOG_TAG, "배너 광고 로드 실패: " + error);
                     // 광고 로드 실패 시 배너 컨테이너 숨김
                     adContainerView.setVisibility(View.GONE);
                 }
@@ -190,27 +207,27 @@ public class MainActivity extends FragmentActivity {
             adMobManager.loadInterstitialAd(new AdMobManager.OnInterstitialAdLoadedListener() {
                 @Override
                 public void onAdLoaded() {
-                    Log.d(TAG, "전면광고 미리 로드 완료");
+                    Log.d(Constants.LOG_TAG, "전면광고 미리 로드 완료");
                 }
 
                 @Override
                 public void onAdLoadFailed(String error) {
-                    Log.e(TAG, "전면광고 미리 로드 실패: " + error);
+                    Log.e(Constants.LOG_TAG, "전면광고 미리 로드 실패: " + error);
                 }
 
                 @Override
                 public void onAdClosed() {
-                    Log.d(TAG, "전면광고 닫힌 후 자동으로 다음 광고 로드됨");
+                    Log.d(Constants.LOG_TAG, "전면광고 닫힌 후 자동으로 다음 광고 로드됨");
                 }
 
                 @Override
                 public void onAdShown() {
-                    Log.d(TAG, "전면광고 표시됨");
+                    Log.d(Constants.LOG_TAG, "전면광고 표시됨");
                 }
 
                 @Override
                 public void onAdShowFailed(String error) {
-                    Log.e(TAG, "전면광고 표시 실패: " + error);
+                    Log.e(Constants.LOG_TAG, "전면광고 표시 실패: " + error);
                 }
             });
         }

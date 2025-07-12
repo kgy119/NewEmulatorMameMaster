@@ -4,6 +4,7 @@ import androidx.annotation.NonNull;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 import androidx.room.ColumnInfo;
+import androidx.room.Ignore;
 
 @Entity(tableName = "games")
 public class Game {
@@ -32,10 +33,11 @@ public class Game {
     @ColumnInfo(name = "game_length")
     private String gameLength;
 
-    // 기본 생성자
+    // 기본 생성자 (Room이 사용)
     public Game() {}
 
-    // 생성자 (id 제외)
+    // ✅ @Ignore 어노테이션 추가 - Room이 무시하도록 함
+    @Ignore
     public Game(String gameId, String gameName, String gameCate, String gameRom,
                 String gameImg, String gameCnt, String gameLength) {
         this.gameId = gameId;
@@ -51,7 +53,6 @@ public class Game {
     public long getId() { return id; }
     public void setId(long id) { this.id = id; }
 
-    // Getters and Setters
     public String getGameId() {
         return gameId;
     }

@@ -17,6 +17,7 @@ import androidx.viewpager2.widget.ViewPager2;
 import com.google.android.gms.ads.AdView;
 import com.ingcorp.webhard.adapter.GamePagerAdapter;
 import com.ingcorp.webhard.base.Constants;
+import com.ingcorp.webhard.fragment.GameFragment;
 import com.ingcorp.webhard.helpers.UtilHelper;
 import com.ingcorp.webhard.manager.AdMobManager;
 import com.ingcorp.webhard.manager.GameListManager;
@@ -43,29 +44,37 @@ public class MainActivity extends FragmentActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        // ✅ 1. GameListManager를 가장 먼저 초기화
         gameListManager = new GameListManager(this);
+        Log.d(Constants.LOG_TAG, "GameListManager 생성됨: " + (gameListManager != null));
+
+        // ✅ 2. 즉시 정적 변수에 설정 (다른 모든 초기화 전에!)
+        GameFragment.setGameListManager(gameListManager);
+        Log.d(Constants.LOG_TAG, "정적 GameListManager 설정 완료");
+
+        // ✅ 3. setContentView 호출 (여기서 Fragment들이 생성될 수 있음)
         setContentView(R.layout.activity_main);
 
-        // 리소스에서 탭 배열 로드
+        // ✅ 4. tabs 배열 로드
         tabs = getGameTabs();
+        Log.d(Constants.LOG_TAG, "탭 배열 로드됨 - 개수: " + (tabs != null ? tabs.length : 0));
 
-        // AdMobManager 인스턴스 가져오기
+        // ✅ 5. 다른 매니저들 초기화
         adMobManager = AdMobManager.getInstance(this);
-
-        // UtilHelper 인스턴스 가져오기
         utilHelper = UtilHelper.getInstance(this);
 
+        // ✅ 6. UI 컴포넌트 초기화
         initViews();
         createTabs();
+
+        // ✅ 7. ViewPager 설정 (이제 GameListManager가 이미 설정되어 있음)
+        Log.d(Constants.LOG_TAG, "setupViewPager 호출 전 GameListManager 상태: " +
+                (gameListManager != null ? "정상" : "NULL"));
         setupViewPager();
 
-        // 배너 광고 로드 (광고 설정에 따라)
+        // 나머지 초기화...
         loadCollapsibleBannerIfEnabled();
-
-        // 전면광고 미리 로드
         loadInterstitialAd();
-
-        // 앱 시작시 임시 파일 정리
         initializeAndCleanup();
     }
 
@@ -177,8 +186,13 @@ public class MainActivity extends FragmentActivity {
      * 탭 개수를 반환하는 헬퍼 메서드
      */
     private int getTabCount() {
-        return tabs != null ? tabs.length : 0;
+        // ✅ GamePagerAdapter의 TABS 배열 길이와 일치시키기
+        return 6; // {"ALL", "FIGHT", "ACTION", "SHOOTING", "SPORTS", "PUZZLE"}
+
+        // 또는 더 안전하게:
+        // return tabs != null ? tabs.length : 6;
     }
+
 
     private void initViews() {
         viewPager = findViewById(R.id.view_pager);
@@ -213,9 +227,27 @@ public class MainActivity extends FragmentActivity {
     }
 
     private void setupViewPager() {
-        GamePagerAdapter adapter = new GamePagerAdapter(getSupportFragmentManager(), getLifecycle(), gameListManager);
-        viewPager.setAdapter(adapter);
+        if (gameListManager == null) {
+            Log.e(Constants.LOG_TAG, "GameListManager가 null입니다! ViewPager 설정 중단");
+            return;
+        }
 
+        Log.d(Constants.LOG_TAG, "ViewPager 설정 시작 - GameListManager 정상");
+        Log.d(Constants.LOG_TAG, "어댑터 생성 직전 GameListManager 상태: " +
+                (gameListManager != null ? "정상" : "NULL"));
+
+        // ✅ GameFragment에 정적으로 GameListManager 설정
+        GameFragment.setGameListManager(gameListManager);
+
+        GamePagerAdapter adapter = new GamePagerAdapter(
+                getSupportFragmentManager(),
+                getLifecycle(),
+                gameListManager
+        );
+
+        Log.d(Constants.LOG_TAG, "어댑터 생성 완료");
+
+        viewPager.setAdapter(adapter);
         viewPager.setOffscreenPageLimit(getTabCount());
         viewPager.setUserInputEnabled(true);
 
@@ -226,6 +258,8 @@ public class MainActivity extends FragmentActivity {
                 scrollToSelectedTab(position);
             }
         });
+
+        Log.d(Constants.LOG_TAG, "ViewPager 설정 완료 - GameListManager: " + (gameListManager != null));
     }
 
     private void selectTab(int index) {

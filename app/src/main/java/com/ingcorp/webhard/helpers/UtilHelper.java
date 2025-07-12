@@ -23,6 +23,13 @@ public class UtilHelper {
     private static final String TAG = "UtilHelper";
     private static final String PREF_NAME = "WebHardPrefs";
 
+    // 광고 설정 관련 키들
+    private static final String AD_BANNER_USE_KEY = "ad_banner_use";
+    private static final String AD_FULL_CNT_KEY = "ad_full_cnt";
+    private static final String AD_FULL_COIN_CNT_KEY = "ad_full_coin_cnt";
+    private static final String GAME_CLICK_COUNT_KEY = "game_click_count";
+    private static final String AD_NATIVE_CNT_KEY = "ad_native_cnt";
+    private static final String KEY_GAME_LIST_VERSION = "game_list_version";
 
     private Context context;
     private static UtilHelper instance;
@@ -184,41 +191,6 @@ public class UtilHelper {
         return false; // 이더넷 감지는 API 23 이상에서만 지원
     }
 
-    // 간단한 네트워크 연결 상태 확인 (대안 방법)
-    public boolean isNetworkAvailable() {
-        ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-        if (cm == null) {
-            Log.w(TAG, "ConnectivityManager null - 네트워크 없음으로 간주");
-            return false;
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            Network activeNetwork = cm.getActiveNetwork();
-            if (activeNetwork == null) {
-                Log.w(TAG, "활성 네트워크 없음");
-                return false;
-            }
-
-            NetworkCapabilities capabilities = cm.getNetworkCapabilities(activeNetwork);
-            if (capabilities == null) {
-                Log.w(TAG, "NetworkCapabilities 없음");
-                return false;
-            }
-
-            // 간단히 인터넷 기능만 확인 (검증 무시)
-            boolean hasInternet = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
-            Log.d(TAG, "인터넷 기능 여부: " + hasInternet);
-
-            return hasInternet;
-        } else {
-            @SuppressWarnings("deprecation")
-            NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
-            boolean isConnected = activeNetwork != null && activeNetwork.isConnected();
-            Log.d(TAG, "레거시 네트워크 연결 상태: " + isConnected);
-
-            return isConnected;
-        }
-    }
     public String getNetworkType() {
         ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
         if (cm == null) return "Unknown";
@@ -294,25 +266,6 @@ public class UtilHelper {
                     Log.d(TAG, "Network error dialog dismissed - closing app");
                     activity.finish();
                     System.exit(0);
-                })
-                .setCancelable(false)
-                .show();
-    }
-
-    // 네트워크 에러 다이얼로그 표시 (커스텀 콜백) - 테마 적용
-    public void showNetworkErrorDialog(android.app.Activity activity, Runnable onConfirmCallback) {
-        if (activity == null || activity.isFinishing()) {
-            return;
-        }
-
-        new android.app.AlertDialog.Builder(activity, R.style.DialogTheme)
-                .setTitle("No Internet Connection")
-                .setMessage("This app requires an internet connection to function properly. Please check your network settings and try again.")
-                .setPositiveButton("OK", (dialog, which) -> {
-                    Log.d(TAG, "Network error dialog dismissed");
-                    if (onConfirmCallback != null) {
-                        onConfirmCallback.run();
-                    }
                 })
                 .setCancelable(false)
                 .show();
@@ -397,14 +350,6 @@ public class UtilHelper {
 
         builder.show();
     }
-
-    // 광고 설정 관련 키들
-    private static final String AD_BANNER_USE_KEY = "ad_banner_use";
-    private static final String AD_FULL_CNT_KEY = "ad_full_cnt";
-    private static final String AD_FULL_COIN_CNT_KEY = "ad_full_coin_cnt";
-    private static final String GAME_CLICK_COUNT_KEY = "game_click_count";
-    private static final String AD_NATIVE_CNT_KEY = "ad_native_cnt";
-    private static final String KEY_GAME_LIST_VERSION = "game_list_version";
 
 
     // 게임 리스트 버전 저장

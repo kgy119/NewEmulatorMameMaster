@@ -1,16 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-<!-- 
-<color name="emu_back_color">#303030</color>
- -->
+ <!--
+ <color name="emu_back_color">#303030</color>
+  -->
  <color name= "colorPrimary">#320b86</color>
  <color name= "colorPrimaryDark">#210660</color>
  <color name= "colorAccent">#9a67ea</color>
 
  <color name="emu_back_color">#000000</color>
- 
- <color name="white">#ffffffff</color>
 
+ <color name="white">#ffffffff</color>
 
  <color name="yellow">#FFFF00</color>
  <color name="fuchsia">#FF00FF</color>
@@ -27,5 +26,15 @@
  <color name="blue">#0000FF</color>
  <color name="navy">#000080</color>
  <color name="black">#000000</color>
-  
+
+ <!-- Dark Dialog Theme Colors -->
+ <color name="dialog_background">#FF1A1A1A</color>
+ <color name="dialog_text_color">@color/white</color>
+ <color name="dialog_text_secondary">@color/silver</color>
+ <color name="dialog_title_color">@color/white</color>
+ <color name="dialog_button_text">@color/colorAccent</color>
+ <color name="dialog_button_background_pressed">#FF2A2A2A</color>
+ <color name="progress_bar_background">@color/gray</color>
+ <color name="progress_bar_progress">@color/colorAccent</color>
+
 </resources>

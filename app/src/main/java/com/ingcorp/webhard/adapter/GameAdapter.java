@@ -128,57 +128,25 @@ public class GameAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             loadGameImage(game);
 
             itemContainer.setOnClickListener(v -> {
-                Log.d(TAG, "게임 클릭: " + game.getGameName());
+                Log.d(TAG, "Game clicked: " + game.getGameName());
 
-                // 인터넷 연결 확인
+                // Check internet connection
                 if (!utilHelper.isNetworkConnected()) {
-                    Log.w(TAG, "인터넷 연결 없음 - 경고창 표시");
+                    Log.w(TAG, "No internet connection - showing warning dialog");
                     utilHelper.showGameNetworkErrorDialog((android.app.Activity) context);
                     return;
                 }
 
-                // 전면 광고 표시 여부 확인
-                boolean shouldShowAd = utilHelper.shouldShowInterstitialAd();
-
-                if (shouldShowAd && adMobManager != null && adMobManager.isInterstitialAdReady()) {
-                    Log.d(TAG, "전면광고 표시 조건 만족 - 광고 표시 후 게임 실행");
-                    adMobManager.showInterstitialAd((android.app.Activity) context, new AdMobManager.OnInterstitialAdShownListener() {
-                        @Override
-                        public void onAdShown() {
-                            Log.d(TAG, "전면광고 표시됨");
+                // Show confirmation dialog
+                utilHelper.showConfirmDialog(
+                        (android.app.Activity) context,
+                        "Launch Game",
+                        "Do you want to start " + game.getGameName() + "?",
+                        () -> {
+                            // User confirmed - proceed with game launch
+                            proceedWithGameLaunch(game);
                         }
-
-                        @Override
-                        public void onAdClosed() {
-                            Log.d(TAG, "전면광고 닫힘 - 게임 실행");
-                            if (onGameClickListener != null) {
-                                onGameClickListener.onGameClick(game);
-                            }
-                        }
-
-                        @Override
-                        public void onAdShowFailed(String error) {
-                            Log.e(TAG, "전면광고 표시 실패: " + error + " - 바로 게임 실행");
-                            if (onGameClickListener != null) {
-                                onGameClickListener.onGameClick(game);
-                            }
-                        }
-
-                        @Override
-                        public void onAdNotReady() {
-                            Log.w(TAG, "전면광고가 준비되지 않음 - 바로 게임 실행");
-                            if (onGameClickListener != null) {
-                                onGameClickListener.onGameClick(game);
-                            }
-                        }
-                    });
-                } else {
-                    Log.d(TAG, "전면광고 표시 조건 불만족 또는 광고 준비 안됨 - 바로 게임 실행");
-                    if (onGameClickListener != null) {
-                        onGameClickListener.onGameClick(game);
-                    }
-                    loadInterstitialAdIfNeeded();
-                }
+                );
             });
 
             itemContainer.setOnLongClickListener(v -> {
@@ -188,6 +156,52 @@ public class GameAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 return true;
             });
         }
+
+        private void proceedWithGameLaunch(Game game) {
+            // Check if should show interstitial ad
+            boolean shouldShowAd = utilHelper.shouldShowInterstitialAd();
+
+            if (shouldShowAd && adMobManager != null && adMobManager.isInterstitialAdReady()) {
+                Log.d(TAG, "Showing interstitial ad before game launch");
+                adMobManager.showInterstitialAd((android.app.Activity) context, new AdMobManager.OnInterstitialAdShownListener() {
+                    @Override
+                    public void onAdShown() {
+                        Log.d(TAG, "Interstitial ad shown");
+                    }
+
+                    @Override
+                    public void onAdClosed() {
+                        Log.d(TAG, "Interstitial ad closed - launching game");
+                        if (onGameClickListener != null) {
+                            onGameClickListener.onGameClick(game);
+                        }
+                    }
+
+                    @Override
+                    public void onAdShowFailed(String error) {
+                        Log.e(TAG, "Interstitial ad show failed: " + error + " - launching game directly");
+                        if (onGameClickListener != null) {
+                            onGameClickListener.onGameClick(game);
+                        }
+                    }
+
+                    @Override
+                    public void onAdNotReady() {
+                        Log.w(TAG, "Interstitial ad not ready - launching game directly");
+                        if (onGameClickListener != null) {
+                            onGameClickListener.onGameClick(game);
+                        }
+                    }
+                });
+            } else {
+                Log.d(TAG, "No ad to show or ad not ready - launching game directly");
+                if (onGameClickListener != null) {
+                    onGameClickListener.onGameClick(game);
+                }
+                loadInterstitialAdIfNeeded();
+            }
+        }
+
 
         private void loadGameImage(Game game) {
             String gameId = game.getGameId();

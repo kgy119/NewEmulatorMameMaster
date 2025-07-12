@@ -1,6 +1,5 @@
 package com.ingcorp.webhard.fragment;
 
-import android.app.ProgressDialog;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -50,9 +49,10 @@ public class GameFragment extends Fragment {
     private View emptyView;
     private boolean isDataLoaded = false;
     private UtilHelper utilHelper;
-    private ProgressDialog progressDialog;
     private Handler mainHandler = new Handler(Looper.getMainLooper());
 
+    private android.app.AlertDialog customProgressDialog;
+    private android.widget.ProgressBar customProgressBar;
 
     public static GameFragment newInstance(int position, GameListManager gameListManager) {
         GameFragment fragment = new GameFragment();
@@ -245,18 +245,6 @@ public class GameFragment extends Fragment {
         }
     }
 
-    private void showGameInfo(Game game) {
-        if (getContext() != null) {
-            new android.app.AlertDialog.Builder(getContext(), R.style.DialogTheme)
-                    .setTitle(game.getGameName())
-                    .setMessage("카테고리: " + game.getGameCate() + "\n" +
-                            "ROM 파일: " + game.getGameRom() + "\n" +
-                            "게임 ID: " + game.getGameId())
-                    .setPositiveButton("확인", null)
-                    .show();
-        }
-    }
-
     private String getRomsPath() {
         try {
             File appDir = getContext().getExternalFilesDir(null);
@@ -275,7 +263,6 @@ public class GameFragment extends Fragment {
             return null;
         }
     }
-
 
     private void launchGame(Game game, String romFilePath) {
         try {
@@ -304,8 +291,8 @@ public class GameFragment extends Fragment {
     private void downloadAndLaunchGameWithProgress(Game game, String romFileName, String romsPath) {
         String downloadUrl = Constants.BASE_ROM_URL + game.getGameRom();
 
-        // 프로그레스 다이얼로그 표시
-        showProgressDialog(game.getGameName());
+        // 커스텀 프로그레스 다이얼로그 표시
+        showCustomProgressDialog(game.getGameName());
 
         // 프로그레스 리스너 생성
         ProgressInterceptor.ProgressListener progressListener = new ProgressInterceptor.ProgressListener() {
@@ -316,7 +303,7 @@ public class GameFragment extends Fragment {
 
                     // UI 스레드에서 프로그레스 업데이트
                     mainHandler.post(() -> {
-                        updateProgress(progress);
+                        updateCustomProgress(progress);
 
                         if (done) {
                             Log.d(Constants.LOG_TAG, "Download completed via Retrofit Progress");
@@ -353,22 +340,20 @@ public class GameFragment extends Fragment {
 
                             // UI 스레드에서 완료 처리
                             mainHandler.post(() -> {
-                                hideProgressDialog();
-                                // 다운로드 완료 후 바로 게임 실행
+                                hideCustomProgressDialog();
                                 launchGame(game, romFile.getAbsolutePath());
                             });
-
 
                         } catch (Exception e) {
                             Log.e(Constants.LOG_TAG, "Error saving ROM file", e);
                             mainHandler.post(() -> {
-                                hideProgressDialog();
+                                hideCustomProgressDialog(); // 수정: 커스텀 다이얼로그 숨김
                                 showDownloadError(e.getMessage());
                             });
                         }
                     }).start();
                 } else {
-                    hideProgressDialog();
+                    hideCustomProgressDialog(); // 수정: 커스텀 다이얼로그 숨김
                     showDownloadError("Server response error");
                 }
             }
@@ -376,38 +361,42 @@ public class GameFragment extends Fragment {
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
                 Log.e(Constants.LOG_TAG, "ROM download failed", t);
-                hideProgressDialog();
+                hideCustomProgressDialog(); // 수정: 커스텀 다이얼로그 숨김
                 showDownloadError(t.getMessage());
             }
         });
     }
 
-    private void showProgressDialog(String gameName) {
+    private void showCustomProgressDialog(String gameName) {
         if (getActivity() != null && !getActivity().isFinishing()) {
-            progressDialog = new ProgressDialog(getActivity(), R.style.DialogTheme);
-            progressDialog.setTitle(gameName); // 타이틀에 게임이름 포함
-            progressDialog.setMessage(""); // 메시지는 빈 문자열
-            progressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-            progressDialog.setMax(100);
-            progressDialog.setProgress(0);
-            progressDialog.setCancelable(false);
-            progressDialog.setCanceledOnTouchOutside(false);
-            progressDialog.show();
+            android.view.View dialogView = getLayoutInflater().inflate(R.layout.dialog_download_progress, null);
+            android.widget.TextView titleText = dialogView.findViewById(R.id.progress_title);
+            customProgressBar = dialogView.findViewById(R.id.progress_bar);
+
+            titleText.setText("Downloading " + gameName);
+            customProgressBar.setMax(100);
+            customProgressBar.setProgress(0);
+
+            customProgressDialog = new android.app.AlertDialog.Builder(getActivity(), R.style.DialogTheme)
+                    .setView(dialogView)
+                    .setCancelable(false)
+                    .create();
+
+            customProgressDialog.show();
         }
     }
 
-    private void updateProgress(int progress) {
-        if (progressDialog != null && progressDialog.isShowing()) {
-            progressDialog.setProgress(progress);
-            // 메시지는 변경하지 않음 (게임 이름만 계속 표시)
+    private void updateCustomProgress(int progress) {
+        if (customProgressBar != null) {
+            customProgressBar.setProgress(progress);
         }
     }
 
-
-    private void hideProgressDialog() {
-        if (progressDialog != null && progressDialog.isShowing()) {
-            progressDialog.dismiss();
-            progressDialog = null;
+    private void hideCustomProgressDialog() {
+        if (customProgressDialog != null && customProgressDialog.isShowing()) {
+            customProgressDialog.dismiss();
+            customProgressDialog = null;
+            customProgressBar = null;
         }
     }
 
@@ -425,7 +414,6 @@ public class GameFragment extends Fragment {
         }
     }
 
-    // checkRomAndLaunchGame 메서드에서 호출 변경
     private void checkRomAndLaunchGame(Game game) {
         if (getContext() == null) return;
 
@@ -451,7 +439,6 @@ public class GameFragment extends Fragment {
             downloadAndLaunchGameWithProgress(game, romFileName, romsPath);
         }
     }
-
 
     @Override
     public void onResume() {

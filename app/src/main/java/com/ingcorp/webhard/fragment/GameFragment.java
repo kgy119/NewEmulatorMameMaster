@@ -8,6 +8,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -40,6 +41,7 @@ import retrofit2.Response;
 
 public class GameFragment extends Fragment {
     private static final String ARG_POSITION = "position";
+    private static final String TAG = "mame00";
 
     private GameListManager gameListManager;
     private RecyclerView recyclerView;
@@ -50,34 +52,112 @@ public class GameFragment extends Fragment {
     private boolean isDataLoaded = false;
     private UtilHelper utilHelper;
     private Handler mainHandler = new Handler(Looper.getMainLooper());
+    private int position;
 
     private android.app.AlertDialog customProgressDialog;
     private android.widget.ProgressBar customProgressBar;
     private android.widget.TextView progressText;
 
+    // ✅ 정적 메서드로 GameListManager 저장
+    private static GameListManager staticGameListManager;
+
+    public static void setGameListManager(GameListManager manager) {
+        staticGameListManager = manager;
+        Log.d("GameFragment", "✅ 정적 GameListManager 설정: " + (manager != null ? "있음" : "NULL"));
+    }
+
     public static GameFragment newInstance(int position, GameListManager gameListManager) {
+        Log.d("GameFragment", "===== newInstance 호출 =====");
+        Log.d("GameFragment", "전달받은 위치: " + position);
+        Log.d("GameFragment", "전달받은 GameListManager: " + (gameListManager != null ? "있음" : "NULL"));
+
+        // ✅ 정적 변수에도 저장
+        setGameListManager(gameListManager);
+
         GameFragment fragment = new GameFragment();
-        fragment.gameListManager = gameListManager;
+
         Bundle args = new Bundle();
         args.putInt(ARG_POSITION, position);
         fragment.setArguments(args);
+
+        Log.d("GameFragment", "===============================");
         return fragment;
+    }
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        if (getArguments() != null) {
+            position = getArguments().getInt(ARG_POSITION);
+        }
+
+        // ✅ 정적 변수에서 GameListManager 가져오기
+        if (staticGameListManager != null) {
+            this.gameListManager = staticGameListManager;
+            Log.d(TAG, "✅ 정적 변수에서 GameListManager 복원: 있음");
+        } else {
+            Log.e(TAG, "❌ 정적 변수의 GameListManager가 null!");
+
+            // ✅ 잠시 대기 후 재시도
+            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                if (staticGameListManager != null) {
+                    this.gameListManager = staticGameListManager;
+                    Log.d(TAG, "✅ 지연 후 GameListManager 복원 성공");
+
+                    // 이미 onCreateView가 호출된 상태라면 데이터 로드 시도
+                    if (getView() != null && !isDataLoaded) {
+                        loadGames();
+                    }
+                } else {
+                    Log.e(TAG, "❌ 지연 후에도 GameListManager null");
+                }
+            }, 100); // 100ms 후 재시도
+        }
+
+        Log.d(TAG, "=== GameFragment onCreate ===");
+        Log.d(TAG, "위치: " + position);
+        Log.d(TAG, "GameListManager: " + (gameListManager != null ? "있음" : "NULL"));
+        Log.d(TAG, "카테고리: " + getTabCategory(position));
+        Log.d(TAG, "========================");
     }
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_game, container, false);
 
-        int position = getArguments() != null ? getArguments().getInt(ARG_POSITION, 0) : 0;
-
-        // UtilHelper 초기화
         utilHelper = UtilHelper.getInstance(getContext());
-
         initViews(view);
         setupRecyclerView();
-        loadGames(position);
+
+        // ✅ GameListManager 상태에 따른 처리
+        if (gameListManager != null) {
+            Log.d(TAG, "✅ onCreateView에서 GameListManager 정상, 게임 로드 시작");
+            loadGames();
+        } else {
+            Log.e(TAG, "❌ onCreateView에서도 GameListManager가 null! Fragment 위치: " + position);
+            showLoading(true); // 로딩 상태 유지
+
+            // ✅ 잠시 후 재시도
+            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                if (gameListManager != null || staticGameListManager != null) {
+                    if (gameListManager == null) {
+                        gameListManager = staticGameListManager;
+                    }
+                    Log.d(TAG, "✅ 지연 후 GameListManager 사용 가능, 게임 로드 시작");
+                    loadGames();
+                } else {
+                    Log.e(TAG, "❌ 최종적으로 GameListManager를 가져올 수 없음");
+                    showError();
+                }
+            }, 200); // 200ms 후 재시도
+        }
 
         return view;
+    }
+
+    private String getTabCategory(int position) {
+        String[] categories = {"ALL", "FIGHT", "ACTION", "SHOOTING", "SPORTS", "PUZZLE"};
+        return position < categories.length ? categories[position] : "UNKNOWN";
     }
 
     /**
@@ -132,20 +212,42 @@ public class GameFragment extends Fragment {
         recyclerView.setAdapter(gameAdapter);
     }
 
-    private void loadGames(int position) {
+    private void loadGames() {
         if (isDataLoaded) return;
+
+        // ✅ GameListManager null 체크 추가
+        if (gameListManager == null) {
+            Log.e(TAG, "GameListManager가 null입니다! Fragment 위치: " + position);
+            showError();
+            return;
+        }
 
         showLoading(true);
         String category = getCategoryByPosition(position);
 
+        // ✅ 디버깅용 로그 추가
+        Log.d(TAG, "게임 로드 시작 - 위치: " + position + ", 카테고리: " + category);
+
         gameListManager.getGamesByCategory(category, new GameListManager.GameListListener() {
             @Override
             public void onGamesLoaded(List<Game> games) {
+                Log.d(TAG, "게임 로드 완료 - 카테고리: " + category +
+                        ", 개수: " + (games != null ? games.size() : 0));
                 updateGameList(games);
                 showLoading(false);
                 isDataLoaded = true;
             }
         });
+    }
+
+    private void showError() {
+        showLoading(false);
+        if (emptyView != null) {
+            emptyView.setVisibility(View.VISIBLE);
+        }
+        if (recyclerView != null) {
+            recyclerView.setVisibility(View.GONE);
+        }
     }
 
     private void updateGameList(List<Game> games) {
@@ -178,16 +280,16 @@ public class GameFragment extends Fragment {
         // 네이티브 광고 주기 가져오기
         int adNativeCnt = utilHelper.getAdNativeCount();
 
-        Log.d(Constants.LOG_TAG, "=== 통합 리스트 생성 시작 ===");
-        Log.d(Constants.LOG_TAG, "게임 수: " + games.size());
-        Log.d(Constants.LOG_TAG, "광고 주기: " + adNativeCnt);
+        Log.d(TAG, "=== 통합 리스트 생성 시작 ===");
+        Log.d(TAG, "게임 수: " + games.size());
+        Log.d(TAG, "광고 주기: " + adNativeCnt);
 
         if (adNativeCnt <= 0 || games.size() < 3) {
             // 광고 주기가 0 이하이거나 게임이 3개 미만이면 광고 없이 게임만 추가
             for (Game game : games) {
                 unifiedList.add(new GameItem(game));
             }
-            Log.d(Constants.LOG_TAG, "광고 없이 게임만 추가 (게임: " + games.size() + "개)");
+            Log.d(TAG, "광고 없이 게임만 추가 (게임: " + games.size() + "개)");
             return unifiedList;
         }
 
@@ -208,7 +310,7 @@ public class GameFragment extends Fragment {
                 adInsertPosition = 1 + random.nextInt(groupSize - 2);
             }
 
-            Log.d(Constants.LOG_TAG, "그룹 [" + startIdx + "-" + (endIdx-1) + "], 크기: " + groupSize +
+            Log.d(TAG, "그룹 [" + startIdx + "-" + (endIdx-1) + "], 크기: " + groupSize +
                     ", 광고 삽입 위치: " + adInsertPosition);
 
             // 그룹의 게임들을 순서대로 추가하면서 중간에 광고 삽입
@@ -216,7 +318,7 @@ public class GameFragment extends Fragment {
                 // 광고 삽입 위치에 도달하면 광고 먼저 추가
                 if (i == adInsertPosition) {
                     unifiedList.add(new AdItem());
-                    Log.d(Constants.LOG_TAG, "위치 " + unifiedList.size() + "에 광고 삽입");
+                    Log.d(TAG, "위치 " + unifiedList.size() + "에 광고 삽입");
                 }
 
                 // 게임 추가
@@ -224,16 +326,16 @@ public class GameFragment extends Fragment {
             }
         }
 
-        Log.d(Constants.LOG_TAG, "최종 통합 리스트 크기: " + unifiedList.size());
+        Log.d(TAG, "최종 통합 리스트 크기: " + unifiedList.size());
 
         // 디버그: 리스트 구성 출력
         for (int i = 0; i < unifiedList.size(); i++) {
             BaseItem item = unifiedList.get(i);
             String type = item.getItemType() == BaseItem.TYPE_AD ? "광고" : "게임";
-            Log.d(Constants.LOG_TAG, "위치 " + i + ": " + type);
+            Log.d(TAG, "위치 " + i + ": " + type);
         }
 
-        Log.d(Constants.LOG_TAG, "=========================");
+        Log.d(TAG, "=========================");
 
         return unifiedList;
     }
@@ -260,7 +362,7 @@ public class GameFragment extends Fragment {
             return fallbackDir.getAbsolutePath();
 
         } catch (Exception e) {
-            Log.e(Constants.LOG_TAG, "Error getting roms path", e);
+            Log.e(TAG, "Error getting roms path", e);
             return null;
         }
     }
@@ -278,7 +380,7 @@ public class GameFragment extends Fragment {
             startActivity(intent);
 
         } catch (Exception e) {
-            Log.e(Constants.LOG_TAG, "Error launching game", e);
+            Log.e(TAG, "Error launching game", e);
             showToast("Failed to launch game: " + e.getMessage());
         }
     }
@@ -294,20 +396,20 @@ public class GameFragment extends Fragment {
      */
     private boolean moveTemporaryFileToFinal(File tempFile, File finalFile) {
         try {
-            Log.d(Constants.LOG_TAG, "임시 파일을 최종 파일로 이동 시작");
-            Log.d(Constants.LOG_TAG, "임시 파일: " + tempFile.getAbsolutePath() + " (크기: " + tempFile.length() + ")");
-            Log.d(Constants.LOG_TAG, "최종 파일: " + finalFile.getAbsolutePath());
+            Log.d(TAG, "임시 파일을 최종 파일로 이동 시작");
+            Log.d(TAG, "임시 파일: " + tempFile.getAbsolutePath() + " (크기: " + tempFile.length() + ")");
+            Log.d(TAG, "최종 파일: " + finalFile.getAbsolutePath());
 
             // 최종 파일이 이미 존재한다면 백업 생성
             File backupFile = null;
             if (finalFile.exists()) {
                 backupFile = new File(finalFile.getAbsolutePath() + ".backup");
                 if (finalFile.renameTo(backupFile)) {
-                    Log.d(Constants.LOG_TAG, "기존 파일을 백업으로 이동: " + backupFile.getAbsolutePath());
+                    Log.d(TAG, "기존 파일을 백업으로 이동: " + backupFile.getAbsolutePath());
                 } else {
-                    Log.w(Constants.LOG_TAG, "기존 파일 백업 실패, 삭제 시도");
+                    Log.w(TAG, "기존 파일 백업 실패, 삭제 시도");
                     if (!finalFile.delete()) {
-                        Log.e(Constants.LOG_TAG, "기존 파일 삭제 실패");
+                        Log.e(TAG, "기존 파일 삭제 실패");
                         return false;
                     }
                 }
@@ -315,42 +417,42 @@ public class GameFragment extends Fragment {
 
             // 임시 파일을 최종 파일로 이동
             if (tempFile.renameTo(finalFile)) {
-                Log.d(Constants.LOG_TAG, "파일 이동 성공");
+                Log.d(TAG, "파일 이동 성공");
 
                 // 백업 파일이 있다면 삭제
                 if (backupFile != null && backupFile.exists()) {
                     if (backupFile.delete()) {
-                        Log.d(Constants.LOG_TAG, "백업 파일 삭제됨");
+                        Log.d(TAG, "백업 파일 삭제됨");
                     } else {
-                        Log.w(Constants.LOG_TAG, "백업 파일 삭제 실패: " + backupFile.getAbsolutePath());
+                        Log.w(TAG, "백업 파일 삭제 실패: " + backupFile.getAbsolutePath());
                     }
                 }
 
                 // 최종 파일 검증
                 if (finalFile.exists() && finalFile.length() > 0) {
-                    Log.d(Constants.LOG_TAG, "최종 파일 검증 성공 - 크기: " + finalFile.length());
+                    Log.d(TAG, "최종 파일 검증 성공 - 크기: " + finalFile.length());
                     return true;
                 } else {
-                    Log.e(Constants.LOG_TAG, "최종 파일 검증 실패");
+                    Log.e(TAG, "최종 파일 검증 실패");
                     return false;
                 }
 
             } else {
-                Log.e(Constants.LOG_TAG, "파일 이동 실패");
+                Log.e(TAG, "파일 이동 실패");
 
                 // 이동 실패시 백업 파일 복원 시도
                 if (backupFile != null && backupFile.exists()) {
                     if (backupFile.renameTo(finalFile)) {
-                        Log.d(Constants.LOG_TAG, "백업 파일 복원됨");
+                        Log.d(TAG, "백업 파일 복원됨");
                     } else {
-                        Log.e(Constants.LOG_TAG, "백업 파일 복원 실패");
+                        Log.e(TAG, "백업 파일 복원 실패");
                     }
                 }
                 return false;
             }
 
         } catch (Exception e) {
-            Log.e(Constants.LOG_TAG, "파일 이동 중 예외 발생", e);
+            Log.e(TAG, "파일 이동 중 예외 발생", e);
             return false;
         }
     }
@@ -361,25 +463,25 @@ public class GameFragment extends Fragment {
     private boolean isRomFileValid(File romFile) {
         try {
             if (!romFile.exists()) {
-                Log.d(Constants.LOG_TAG, "ROM 파일이 존재하지 않음: " + romFile.getAbsolutePath());
+                Log.d(TAG, "ROM 파일이 존재하지 않음: " + romFile.getAbsolutePath());
                 return false;
             }
 
             if (romFile.length() == 0) {
-                Log.w(Constants.LOG_TAG, "ROM 파일이 비어있음: " + romFile.getAbsolutePath());
+                Log.w(TAG, "ROM 파일이 비어있음: " + romFile.getAbsolutePath());
                 return false;
             }
 
             if (!romFile.canRead()) {
-                Log.w(Constants.LOG_TAG, "ROM 파일을 읽을 수 없음: " + romFile.getAbsolutePath());
+                Log.w(TAG, "ROM 파일을 읽을 수 없음: " + romFile.getAbsolutePath());
                 return false;
             }
 
-            Log.d(Constants.LOG_TAG, "ROM 파일 유효성 검사 통과: " + romFile.getAbsolutePath() + " (크기: " + romFile.length() + ")");
+            Log.d(TAG, "ROM 파일 유효성 검사 통과: " + romFile.getAbsolutePath() + " (크기: " + romFile.length() + ")");
             return true;
 
         } catch (Exception e) {
-            Log.e(Constants.LOG_TAG, "ROM 파일 유효성 검사 중 오류", e);
+            Log.e(TAG, "ROM 파일 유효성 검사 중 오류", e);
             return false;
         }
     }
@@ -406,35 +508,34 @@ public class GameFragment extends Fragment {
 
         // ROM 파일의 유효성을 더 엄격하게 검사
         if (isRomFileValid(romFile)) {
-            Log.d(Constants.LOG_TAG, "유효한 ROM 파일 발견, 게임 직접 실행");
+            Log.d(TAG, "유효한 ROM 파일 발견, 게임 직접 실행");
             launchGame(game, romFile.getAbsolutePath());
         } else {
             // 유효하지 않은 파일이 있다면 삭제하고 다시 다운로드
             if (romFile.exists()) {
-                Log.w(Constants.LOG_TAG, "유효하지 않은 ROM 파일 삭제: " + romFile.getAbsolutePath());
+                Log.w(TAG, "유효하지 않은 ROM 파일 삭제: " + romFile.getAbsolutePath());
                 if (romFile.delete()) {
-                    Log.d(Constants.LOG_TAG, "손상된 ROM 파일 삭제됨");
+                    Log.d(TAG, "손상된 ROM 파일 삭제됨");
                 } else {
-                    Log.e(Constants.LOG_TAG, "손상된 ROM 파일 삭제 실패");
+                    Log.e(TAG, "손상된 ROM 파일 삭제 실패");
                 }
             }
 
             // 임시 파일도 확인하고 있다면 삭제
             File tempFile = new File(romsPath, romFileName + ".tmp");
             if (tempFile.exists()) {
-                Log.w(Constants.LOG_TAG, "기존 임시 파일 발견, 삭제: " + tempFile.getAbsolutePath());
+                Log.w(TAG, "기존 임시 파일 발견, 삭제: " + tempFile.getAbsolutePath());
                 if (tempFile.delete()) {
-                    Log.d(Constants.LOG_TAG, "기존 임시 파일 삭제됨");
+                    Log.d(TAG, "기존 임시 파일 삭제됨");
                 } else {
-                    Log.e(Constants.LOG_TAG, "기존 임시 파일 삭제 실패");
+                    Log.e(TAG, "기존 임시 파일 삭제 실패");
                 }
             }
 
-            Log.d(Constants.LOG_TAG, "ROM 파일을 새로 다운로드 시작");
+            Log.d(TAG, "ROM 파일을 새로 다운로드 시작");
             downloadAndLaunchGameWithProgress(game, romFileName, romsPath);
         }
     }
-
 
     private void showCustomProgressDialog(String gameName) {
         if (getActivity() != null && !getActivity().isFinishing()) {
@@ -457,14 +558,12 @@ public class GameFragment extends Fragment {
         }
     }
 
-
     private void updateCustomProgress(int progress) {
         if (customProgressBar != null && progressText != null) {
             customProgressBar.setProgress(progress);
             progressText.setText(progress + " / 100"); // 진행률 텍스트 업데이트
         }
     }
-
 
     private void hideCustomProgressDialog() {
         if (customProgressDialog != null && customProgressDialog.isShowing()) {
@@ -489,13 +588,11 @@ public class GameFragment extends Fragment {
         }
     }
 
-
     @Override
     public void onResume() {
         super.onResume();
-        if (!isDataLoaded && getArguments() != null) {
-            int position = getArguments().getInt(ARG_POSITION, 0);
-            loadGames(position);
+        if (!isDataLoaded) {
+            loadGames();
         }
     }
 
@@ -508,7 +605,7 @@ public class GameFragment extends Fragment {
 
             // 1. 네트워크 연결 확인
             if (!utilHelper.isNetworkConnected()) {
-                Log.w(Constants.LOG_TAG, "네트워크 연결 없음");
+                Log.w(TAG, "네트워크 연결 없음");
                 utilHelper.showGameNetworkErrorDialog((android.app.Activity) getContext());
                 return false;
             }
@@ -516,7 +613,7 @@ public class GameFragment extends Fragment {
             // 2. 이미 다운로드 중인지 확인
             String downloadState = utilHelper.getDownloadState(romFileName);
             if ("downloading".equals(downloadState)) {
-                Log.w(Constants.LOG_TAG, "이미 다운로드 중인 파일: " + romFileName);
+                Log.w(TAG, "이미 다운로드 중인 파일: " + romFileName);
                 showToast("This game is already being downloaded.");
                 return false;
             }
@@ -524,7 +621,7 @@ public class GameFragment extends Fragment {
             // 3. 디스크 공간 확인 (예상 크기 50MB로 가정)
             long estimatedSize = 50 * 1024 * 1024; // 50MB
             if (!utilHelper.hasEnoughDiskSpace(romsPath, estimatedSize)) {
-                Log.w(Constants.LOG_TAG, "디스크 공간 부족");
+                Log.w(TAG, "디스크 공간 부족");
                 showToast("Not enough storage space available.");
                 return false;
             }
@@ -532,11 +629,11 @@ public class GameFragment extends Fragment {
             // 4. 다운로드 상태를 downloading으로 설정
             utilHelper.saveDownloadState(romFileName, "downloading");
 
-            Log.d(Constants.LOG_TAG, "다운로드 사전 검사 통과: " + romFileName);
+            Log.d(TAG, "다운로드 사전 검사 통과: " + romFileName);
             return true;
 
         } catch (Exception e) {
-            Log.e(Constants.LOG_TAG, "다운로드 사전 검사 중 오류", e);
+            Log.e(TAG, "다운로드 사전 검사 중 오류", e);
             return false;
         }
     }
@@ -574,7 +671,7 @@ public class GameFragment extends Fragment {
                         updateCustomProgress(progress);
 
                         if (done) {
-                            Log.d(Constants.LOG_TAG, "다운로드 완료 신호 수신");
+                            Log.d(TAG, "다운로드 완료 신호 수신");
                         }
                     });
                 }
@@ -598,7 +695,7 @@ public class GameFragment extends Fragment {
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
-                Log.e(Constants.LOG_TAG, "다운로드 네트워크 오류", t);
+                Log.e(TAG, "다운로드 네트워크 오류", t);
                 handleDownloadFailure(game, romFileName, "Network error: " + t.getMessage());
             }
         });
@@ -610,9 +707,9 @@ public class GameFragment extends Fragment {
     private void cleanupExistingTempFile(File tempFile) {
         if (tempFile.exists()) {
             if (tempFile.delete()) {
-                Log.d(Constants.LOG_TAG, "기존 임시 파일 삭제됨: " + tempFile.getName());
+                Log.d(TAG, "기존 임시 파일 삭제됨: " + tempFile.getName());
             } else {
-                Log.w(Constants.LOG_TAG, "기존 임시 파일 삭제 실패: " + tempFile.getName());
+                Log.w(TAG, "기존 임시 파일 삭제 실패: " + tempFile.getName());
             }
         }
     }
@@ -632,7 +729,7 @@ public class GameFragment extends Fragment {
             String contentLengthHeader = response.headers().get("Content-Length");
             if (contentLengthHeader != null) {
                 expectedSize = Long.parseLong(contentLengthHeader);
-                Log.d(Constants.LOG_TAG, "예상 파일 크기: " + formatBytes(expectedSize));
+                Log.d(TAG, "예상 파일 크기: " + formatBytes(expectedSize));
             }
 
             // 임시 파일에 저장
@@ -642,7 +739,7 @@ public class GameFragment extends Fragment {
             byte[] buffer = new byte[8192];
             int bytesRead;
 
-            Log.d(Constants.LOG_TAG, "임시 파일에 저장 시작: " + tempFile.getAbsolutePath());
+            Log.d(TAG, "임시 파일에 저장 시작: " + tempFile.getAbsolutePath());
 
             while ((bytesRead = inputStream.read(buffer)) != -1) {
                 fos.write(buffer, 0, bytesRead);
@@ -661,11 +758,11 @@ public class GameFragment extends Fragment {
                 throw new Exception("Temporary file is empty or does not exist");
             }
 
-            Log.d(Constants.LOG_TAG, "다운로드 완료 - 크기: " + formatBytes(actualSize));
+            Log.d(TAG, "다운로드 완료 - 크기: " + formatBytes(actualSize));
             downloadSuccess = true;
 
         } catch (Exception e) {
-            Log.e(Constants.LOG_TAG, "파일 저장 중 오류", e);
+            Log.e(TAG, "파일 저장 중 오류", e);
             handleDownloadFailure(game, romFileName, e.getMessage());
 
             // 실패한 임시 파일 정리
@@ -691,7 +788,7 @@ public class GameFragment extends Fragment {
             try {
                 stream.close();
             } catch (Exception e) {
-                Log.e(Constants.LOG_TAG, "스트림 닫기 실패", e);
+                Log.e(TAG, "스트림 닫기 실패", e);
             }
         }
     }
@@ -710,7 +807,7 @@ public class GameFragment extends Fragment {
                 // 다운로드 상태를 완료로 설정
                 utilHelper.saveDownloadState(romFileName, "completed");
 
-                Log.d(Constants.LOG_TAG, "ROM 다운로드 및 설치 완료: " + finalFile.getAbsolutePath());
+                Log.d(TAG, "ROM 다운로드 및 설치 완료: " + finalFile.getAbsolutePath());
                 launchGame(game, finalFile.getAbsolutePath());
             } else {
                 // 파일 이동 실패
@@ -748,7 +845,7 @@ public class GameFragment extends Fragment {
                     error,
                     () -> {
                         // 재시도 콜백
-                        Log.d(Constants.LOG_TAG, "다운로드 재시도: " + game.getGameName());
+                        Log.d(TAG, "다운로드 재시도: " + game.getGameName());
                         checkRomAndLaunchGame(game);
                     }
             );
@@ -763,5 +860,47 @@ public class GameFragment extends Fragment {
         if (bytes < 1024 * 1024) return String.format("%.1f KB", bytes / 1024.0);
         if (bytes < 1024 * 1024 * 1024) return String.format("%.1f MB", bytes / (1024.0 * 1024.0));
         return String.format("%.1f GB", bytes / (1024.0 * 1024.0 * 1024.0));
+    }
+
+    // ✅ GameFragment 클래스에 추가할 메서드들
+
+    /**
+     * 정적 GameListManager를 반환하는 메서드
+     */
+    public static GameListManager getStaticGameListManager() {
+        return staticGameListManager;
+    }
+
+    /**
+     * GameListManager를 업데이트하는 메서드
+     */
+    public void updateGameListManager(GameListManager gameListManager) {
+        this.gameListManager = gameListManager;
+        Log.d(TAG, "Fragment(" + position + ") GameListManager 업데이트됨: " +
+                (gameListManager != null ? "있음" : "NULL"));
+
+        // 아직 데이터가 로드되지 않았다면 로드 시도
+        if (gameListManager != null && !isDataLoaded && getView() != null) {
+            loadGames();
+        }
+    }
+
+    /**
+     * Fragment가 준비되었는지 확인하는 메서드
+     */
+    public boolean isReady() {
+        return gameListManager != null && getView() != null;
+    }
+
+    /**
+     * 강제로 데이터를 다시 로드하는 메서드
+     */
+    public void forceReload() {
+        isDataLoaded = false;
+        if (gameListManager != null) {
+            loadGames();
+        } else {
+            showError();
+        }
     }
 }

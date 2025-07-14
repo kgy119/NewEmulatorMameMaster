@@ -55,6 +55,7 @@ import android.view.MotionEvent;
 import com.ingcorp.webhard.BuildConfig;
 import com.ingcorp.webhard.Emulator;
 import com.ingcorp.webhard.MAME4droid;
+import com.ingcorp.webhard.base.Constants;
 import com.ingcorp.webhard.helpers.DialogHelper;
 import com.ingcorp.webhard.helpers.PrefsHelper;
 import com.ingcorp.webhard.helpers.UtilHelper;
@@ -129,7 +130,7 @@ public class TouchController implements IController {
 			btnStates[i] = old_btnStates[i] = BTN_NO_PRESS_STATE;
 
 		// 디버그 로그 (필요시)
-		Log.d("TouchController", "TouchController 초기화 완료");
+		Log.d(Constants.LOG_TAG, "TouchController 초기화 완료");
 	}
 
     public void setMAME4droid(MAME4droid value) {
@@ -349,7 +350,6 @@ public class TouchController implements IController {
 											mm.showDialog(DialogHelper.DIALOG_OPTIONS);
 										} else if (iv.getValue() == BTN_COIN && actionEvent != MotionEvent.ACTION_MOVE) {
 											// BTN_COIN 클릭 처리
-
 											handleBtnCoinClick();
 										}
 									} else if (mm.getPrefsHelper().getControllerType() == PrefsHelper.PREF_DIGITAL_DPAD
@@ -755,15 +755,15 @@ public class TouchController implements IController {
 	// TouchController 클래스에 추가할 메서드
 	private void handleBtnCoinClick() {
 		try {
-			Log.d("TouchController", "BTN_COIN 클릭 처리 시작");
+			Log.d(Constants.LOG_TAG, "BTN_COIN 클릭 처리 시작");
 
 			// UtilHelper 인스턴스 가져오기
 			UtilHelper utilHelper = UtilHelper.getInstance(mm);
 
 			// 네트워크 연결 확인
 			if (!utilHelper.isNetworkConnected()) {
-				Log.w("TouchController", "네트워크 연결이 없어 보상형 광고를 표시할 수 없습니다");
-				utilHelper.showToast("Network connection required for rewards");
+				Log.e(Constants.LOG_TAG, "네트워크 연결이 없어 보상형 광고를 표시할 수 없습니다");
+				utilHelper.showGameNetworkErrorDialog(mm);
 				return;
 			}
 
@@ -771,38 +771,38 @@ public class TouchController implements IController {
 			boolean shouldShowReward = utilHelper.shouldShowRewardAd();
 
 			if (shouldShowReward) {
-				Log.d("TouchController", "보상형 광고 표시 조건 충족");
+				Log.d(Constants.LOG_TAG, "보상형 광고 표시 조건 충족");
 				showRewardedAd();
 			} else {
-				Log.d("TouchController", "보상형 광고 표시 조건 미충족, 현재 클릭 수: " + utilHelper.getBtnCoinClickCount());
+				Log.d(Constants.LOG_TAG, "보상형 광고 표시 조건 미충족, 현재 클릭 수: " + utilHelper.getBtnCoinClickCount());
 			}
 
 		} catch (Exception e) {
-			Log.e("TouchController", "BTN_COIN 클릭 처리 중 오류", e);
+			Log.e(Constants.LOG_TAG, "BTN_COIN 클릭 처리 중 오류", e);
 		}
 	}
 
 	private void showRewardedAd() {
 		try {
-			Log.d("TouchController", "보상형 광고 표시 시작");
+			Log.d(Constants.LOG_TAG, "보상형 광고 표시 시작");
 
 			AdMobManager adMobManager = AdMobManager.getInstance(mm);
 
 			// 보상형 광고가 준비되어 있는지 확인
 			if (!adMobManager.isRewardedAdReady()) {
-				Log.w("TouchController", "보상형 광고가 준비되지 않음, 로드 시도");
+				Log.w(Constants.LOG_TAG, "보상형 광고가 준비되지 않음, 로드 시도");
 
 				// 광고가 준비되지 않았다면 로드 시도
 				adMobManager.loadRewardedAd(new AdMobManager.OnRewardedAdLoadedListener() {
 					@Override
 					public void onAdLoaded() {
-						Log.d("TouchController", "보상형 광고 로드 완료, 표시 시도");
+						Log.d(Constants.LOG_TAG, "보상형 광고 로드 완료, 표시 시도");
 						showRewardedAdInternal();
 					}
 
 					@Override
 					public void onAdLoadFailed(String error) {
-						Log.e("TouchController", "보상형 광고 로드 실패: " + error);
+						Log.e(Constants.LOG_TAG, "보상형 광고 로드 실패: " + error);
 						UtilHelper.getInstance(mm).showToast("Failed to load reward ad");
 					}
 
@@ -827,7 +827,7 @@ public class TouchController implements IController {
 			}
 
 		} catch (Exception e) {
-			Log.e("TouchController", "보상형 광고 표시 중 오류", e);
+			Log.e(Constants.LOG_TAG, "보상형 광고 표시 중 오류", e);
 		}
 	}
 
@@ -838,29 +838,29 @@ public class TouchController implements IController {
 			adMobManager.showRewardedAd(mm, new AdMobManager.OnRewardedAdShownListener() {
 				@Override
 				public void onAdShown() {
-					Log.d("TouchController", "보상형 광고 표시됨");
+					Log.d(Constants.LOG_TAG, "보상형 광고 표시됨");
 				}
 
 				@Override
 				public void onAdClosed() {
-					Log.d("TouchController", "보상형 광고 닫힘");
+					Log.d(Constants.LOG_TAG, "보상형 광고 닫힘");
 				}
 
 				@Override
 				public void onAdShowFailed(String error) {
-					Log.e("TouchController", "보상형 광고 표시 실패: " + error);
+					Log.e(Constants.LOG_TAG, "보상형 광고 표시 실패: " + error);
 					UtilHelper.getInstance(mm).showToast("Failed to show reward ad");
 				}
 
 				@Override
 				public void onAdNotReady() {
-					Log.w("TouchController", "보상형 광고가 준비되지 않음");
+					Log.w(Constants.LOG_TAG, "보상형 광고가 준비되지 않음");
 					UtilHelper.getInstance(mm).showToast("Reward ad not ready");
 				}
 
 				@Override
 				public void onUserEarnedReward(int amount, String type) {
-					Log.d("TouchController", "사용자가 보상을 받음: " + amount + " " + type);
+					Log.d(Constants.LOG_TAG, "사용자가 보상을 받음: " + amount + " " + type);
 
 					// 여기에 보상 처리 로직 추가
 					// 예: 게임 내 코인 증가, 아이템 지급 등
@@ -873,7 +873,7 @@ public class TouchController implements IController {
 			});
 
 		} catch (Exception e) {
-			Log.e("TouchController", "보상형 광고 표시 내부 처리 중 오류", e);
+			Log.e(Constants.LOG_TAG, "보상형 광고 표시 내부 처리 중 오류", e);
 		}
 	}
 
@@ -882,16 +882,17 @@ public class TouchController implements IController {
 	 */
 	private void handleUserReward(int amount, String type) {
 		try {
-			Log.d("TouchController", "사용자 보상 처리: " + amount + " " + type);
+			Log.d(Constants.LOG_TAG, "사용자 보상 처리: " + amount + " " + type);
 
 			// TODO: 여기에 실제 보상 처리 로직 구현
 			// 예: 게임 내 화폐 증가, 특별 아이템 지급, 생명력 회복 등
 
 			// 예시: Emulator를 통한 게임 내 값 설정
 			// Emulator.setValue(Emulator.COIN_VALUE, amount);
+//			Emulator.setDigitalData(0, digital_data[0]);
 
 		} catch (Exception e) {
-			Log.e("TouchController", "사용자 보상 처리 중 오류", e);
+			Log.e(Constants.LOG_TAG, "사용자 보상 처리 중 오류", e);
 		}
 	}
 }

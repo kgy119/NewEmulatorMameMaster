@@ -24,11 +24,12 @@ import com.google.android.gms.ads.nativead.NativeAdOptions;
 import com.google.android.gms.ads.rewarded.RewardedAd;
 import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback;
 import com.ingcorp.webhard.R;
+import com.ingcorp.webhard.base.Constants;
 
 import androidx.annotation.NonNull;
 
 public class AdMobManager {
-    private static final String TAG = "AdMobManager";
+    private static final String TAG = Constants.LOG_TAG;
     private static AdMobManager instance;
 
     private Context context;

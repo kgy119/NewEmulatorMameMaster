@@ -218,14 +218,12 @@ public class SplashActivity extends Activity {
         }
     }
 
-    // SplashActivity.java의 saveAdSettingsFromServer 메서드 수정
-
     private void saveAdSettingsFromServer(VersionResponse.Root root) {
         try {
             // 서버에서 받은 광고 설정 값들을 가져와서 저장
             boolean adBannerUse = root.isAdBannerUse(); // 배너 광고 사용 여부
             int adFullCnt = root.getAdFullCnt(); // 전면 광고 주기
-            int adFullCoinCnt = root.getAdFullCoinCnt(); // 전면 광고 코인 개수
+            int adFullCoinCnt = root.getAdFullCoinCnt(); // 보상형 광고 코인 개수
             int adNativeCnt = root.getAdNativeCnt(); // 네이티브 광고 주기
 
             // UtilHelper를 통해 광고 설정 저장

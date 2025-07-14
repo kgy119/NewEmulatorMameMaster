@@ -68,6 +68,7 @@ import com.ingcorp.webhard.helpers.ScraperHelper;
 import com.ingcorp.webhard.input.ControlCustomizer;
 import com.ingcorp.webhard.input.GameController;
 import com.ingcorp.webhard.input.InputHandler;
+import com.ingcorp.webhard.manager.AdMobManager;
 import com.ingcorp.webhard.views.IEmuView;
 import com.ingcorp.webhard.views.InputView;
 import com.ingcorp.webhard.R;
@@ -160,6 +161,9 @@ public class MAME4droid extends Activity {
 		}
 
 		initMame4droid();
+
+		// 보상형 광고 미리 로드
+		initializeRewardedAd();
 	}
 
 	protected void initMame4droid() {
@@ -292,6 +296,44 @@ public class MAME4droid extends Activity {
 
 		overridePendingTransition(0, 0);
 	}
+
+	private void initializeRewardedAd() {
+		try {
+			Log.d("MAME4droid", "보상형 광고 초기화 시작");
+
+			AdMobManager adMobManager = AdMobManager.getInstance(this);
+			adMobManager.loadRewardedAd(new AdMobManager.OnRewardedAdLoadedListener() {
+				@Override
+				public void onAdLoaded() {
+					Log.d("MAME4droid", "보상형 광고 사전 로드 완료");
+				}
+
+				@Override
+				public void onAdLoadFailed(String error) {
+					Log.w("MAME4droid", "보상형 광고 사전 로드 실패: " + error);
+				}
+
+				@Override
+				public void onAdClosed() {
+					// 사용하지 않음
+				}
+
+				@Override
+				public void onAdShown() {
+					// 사용하지 않음
+				}
+
+				@Override
+				public void onAdShowFailed(String error) {
+					// 사용하지 않음
+				}
+			});
+
+		} catch (Exception e) {
+			Log.e("MAME4droid", "보상형 광고 초기화 중 오류", e);
+		}
+	}
+
 
 
 	//ACTIVITY

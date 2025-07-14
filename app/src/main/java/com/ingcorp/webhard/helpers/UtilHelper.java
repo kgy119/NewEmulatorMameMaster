@@ -28,10 +28,12 @@ public class UtilHelper {
     // 광고 설정 관련 키들
     private static final String AD_BANNER_USE_KEY = "ad_banner_use";
     private static final String AD_FULL_CNT_KEY = "ad_full_cnt";
-    private static final String AD_FULL_COIN_CNT_KEY = "ad_full_coin_cnt";
+    private static final String AD_REWARD_COIN_CNT_KEY = "ad_reward_coin_cnt";
     private static final String GAME_CLICK_COUNT_KEY = "game_click_count";
     private static final String AD_NATIVE_CNT_KEY = "ad_native_cnt";
     private static final String KEY_GAME_LIST_VERSION = "game_list_version";
+    private static final String BTN_COIN_CLICK_COUNT_KEY = "btn_coin_click_count";
+
 
     private Context context;
     private static UtilHelper instance;
@@ -374,7 +376,7 @@ public class UtilHelper {
 
         editor.putBoolean(AD_BANNER_USE_KEY, adBannerUse);
         editor.putInt(AD_FULL_CNT_KEY, adFullCnt);
-        editor.putInt(AD_FULL_COIN_CNT_KEY, adFullCoinCnt);
+        editor.putInt(AD_REWARD_COIN_CNT_KEY, adFullCoinCnt);
         editor.putInt(AD_NATIVE_CNT_KEY, adNativeCnt);
         editor.apply();
 
@@ -400,10 +402,10 @@ public class UtilHelper {
         return prefs.getInt(AD_FULL_CNT_KEY, 1); // 기본값: 1 (매번 표시)
     }
 
-    // 전면 광고 코인 개수 가져오기
+    // 보상형 광고 코인 개수 가져오기
     public int getAdFullCoinCount() {
         SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-        return prefs.getInt(AD_FULL_COIN_CNT_KEY, 5); // 기본값: 5
+        return prefs.getInt(AD_REWARD_COIN_CNT_KEY, 5); // 기본값: 5
     }
 
     // 게임 클릭 수 증가 및 전면 광고 표시 여부 확인
@@ -445,12 +447,67 @@ public class UtilHelper {
         Log.d(TAG, "게임 클릭 수 초기화됨");
     }
 
+    /**
+     * BTN_COIN 클릭 수 증가 및 보상형 광고 표시 여부 확인
+     */
+    public boolean shouldShowRewardAd() {
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+
+        // 현재 BTN_COIN 클릭 수 가져오기
+        int currentCoinClickCount = prefs.getInt(BTN_COIN_CLICK_COUNT_KEY, 0);
+
+        // 클릭 수 증가
+        currentCoinClickCount++;
+
+        // 증가된 클릭 수 저장
+        prefs.edit().putInt(BTN_COIN_CLICK_COUNT_KEY, currentCoinClickCount).apply();
+
+        // 보상형 광고 코인 주기 가져오기
+        int adRewardCoinCnt = getAdFullCoinCount();
+
+        Log.d(TAG, "BTN_COIN 클릭 수: " + currentCoinClickCount + ", 보상 광고 주기: " + adRewardCoinCnt);
+
+        // 주기로 나누어서 나머지가 0인지 확인
+        boolean shouldShow = (currentCoinClickCount % adRewardCoinCnt) == 0;
+
+        Log.d(TAG, "보상형 광고 표시 여부: " + shouldShow);
+
+        return shouldShow;
+    }
+
+    /**
+     * BTN_COIN 클릭 수 가져오기
+     */
+    public int getBtnCoinClickCount() {
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        return prefs.getInt(BTN_COIN_CLICK_COUNT_KEY, 0);
+    }
+
+    /**
+     * BTN_COIN 클릭 수 초기화 (디버그용)
+     */
+    public void resetBtnCoinClickCount() {
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        prefs.edit().putInt(BTN_COIN_CLICK_COUNT_KEY, 0).apply();
+        Log.d(TAG, "BTN_COIN 클릭 수 초기화됨");
+    }
+
+    /**
+     * BTN_COIN 및 광고 설정 정보 로깅 (디버그용)
+     */
+    public void logCoinAdSettings() {
+        Log.d(TAG, "=== BTN_COIN 및 광고 설정 정보 ===");
+        Log.d(TAG, "보상형 광고 코인 주기: " + getAdFullCoinCount());
+        Log.d(TAG, "현재 BTN_COIN 클릭 수: " + getBtnCoinClickCount());
+        Log.d(TAG, "===========================");
+    }
+
     // 광고 설정 정보 로깅 (디버그용)
     public void logAdSettings() {
         Log.d(TAG, "=== 광고 설정 정보 ===");
         Log.d(TAG, "배너 광고 사용: " + (isAdBannerEnabled() ? "예" : "아니오"));
         Log.d(TAG, "전면 광고 주기: " + getAdFullCount());
-        Log.d(TAG, "전면 광고 코인: " + getAdFullCoinCount());
+        Log.d(TAG, "보상형 광고 코인: " + getAdFullCoinCount());
         Log.d(TAG, "네이티브 광고 주기: " + getAdNativeCount());
         Log.d(TAG, "현재 게임 클릭 수: " + getGameClickCount());
         Log.d(TAG, "==================");
@@ -941,4 +998,6 @@ public class UtilHelper {
             Log.e(TAG, "ROMs 디렉토리 상태 확인 중 오류", e);
         }
     }
+
+
 }

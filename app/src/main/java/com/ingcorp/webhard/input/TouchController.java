@@ -49,12 +49,16 @@ import android.content.res.Configuration;
 import android.graphics.Rect;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
+import android.util.Log;
 import android.view.MotionEvent;
 
+import com.ingcorp.webhard.BuildConfig;
 import com.ingcorp.webhard.Emulator;
 import com.ingcorp.webhard.MAME4droid;
 import com.ingcorp.webhard.helpers.DialogHelper;
 import com.ingcorp.webhard.helpers.PrefsHelper;
+import com.ingcorp.webhard.helpers.UtilHelper;
+import com.ingcorp.webhard.manager.AdMobManager;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -123,6 +127,9 @@ public class TouchController implements IController {
 		stick_state = old_stick_state = STICK_NONE;
 		for (int i = 0; i < NUM_BUTTONS; i++)
 			btnStates[i] = old_btnStates[i] = BTN_NO_PRESS_STATE;
+
+		// 디버그 로그 (필요시)
+		Log.d("TouchController", "TouchController 초기화 완료");
 	}
 
     public void setMAME4droid(MAME4droid value) {
@@ -133,6 +140,12 @@ public class TouchController implements IController {
 			state = mm.getPrefsHelper().isLandscapeTouchController() ? STATE_SHOWING_CONTROLLER : STATE_SHOWING_NONE;
 		} else {
 			state = mm.getPrefsHelper().isPortraitTouchController() ? STATE_SHOWING_CONTROLLER : STATE_SHOWING_NONE;
+		}
+
+		// BTN_COIN 설정 로깅 (디버그 모드에서만)
+		if (BuildConfig.DEBUG) {
+			UtilHelper utilHelper = UtilHelper.getInstance(mm);
+			utilHelper.logCoinAdSettings();
 		}
     }
 
@@ -334,6 +347,10 @@ public class TouchController implements IController {
 										} else if (iv.getValue() == BTN_OPTION && actionEvent != MotionEvent.ACTION_MOVE && !Emulator.isInOptions()) {
 											Emulator.setInOptions(true);
 											mm.showDialog(DialogHelper.DIALOG_OPTIONS);
+										} else if (iv.getValue() == BTN_COIN && actionEvent != MotionEvent.ACTION_MOVE) {
+											// BTN_COIN 클릭 처리
+
+											handleBtnCoinClick();
 										}
 									} else if (mm.getPrefsHelper().getControllerType() == PrefsHelper.PREF_DIGITAL_DPAD
 										&& !((mm.getInputHandler().getTiltSensor().isEnabled() ||
@@ -733,5 +750,148 @@ public class TouchController implements IController {
 		vibrator.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK));
 		//vibrator.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_TICK));
 		//vibrator.vibrate(VibrationEffect.createOneShot(1L, 180));
+	}
+
+	// TouchController 클래스에 추가할 메서드
+	private void handleBtnCoinClick() {
+		try {
+			Log.d("TouchController", "BTN_COIN 클릭 처리 시작");
+
+			// UtilHelper 인스턴스 가져오기
+			UtilHelper utilHelper = UtilHelper.getInstance(mm);
+
+			// 네트워크 연결 확인
+			if (!utilHelper.isNetworkConnected()) {
+				Log.w("TouchController", "네트워크 연결이 없어 보상형 광고를 표시할 수 없습니다");
+				utilHelper.showToast("Network connection required for rewards");
+				return;
+			}
+
+			// BTN_COIN 클릭 수 증가 및 보상형 광고 표시 여부 확인
+			boolean shouldShowReward = utilHelper.shouldShowRewardAd();
+
+			if (shouldShowReward) {
+				Log.d("TouchController", "보상형 광고 표시 조건 충족");
+				showRewardedAd();
+			} else {
+				Log.d("TouchController", "보상형 광고 표시 조건 미충족, 현재 클릭 수: " + utilHelper.getBtnCoinClickCount());
+			}
+
+		} catch (Exception e) {
+			Log.e("TouchController", "BTN_COIN 클릭 처리 중 오류", e);
+		}
+	}
+
+	private void showRewardedAd() {
+		try {
+			Log.d("TouchController", "보상형 광고 표시 시작");
+
+			AdMobManager adMobManager = AdMobManager.getInstance(mm);
+
+			// 보상형 광고가 준비되어 있는지 확인
+			if (!adMobManager.isRewardedAdReady()) {
+				Log.w("TouchController", "보상형 광고가 준비되지 않음, 로드 시도");
+
+				// 광고가 준비되지 않았다면 로드 시도
+				adMobManager.loadRewardedAd(new AdMobManager.OnRewardedAdLoadedListener() {
+					@Override
+					public void onAdLoaded() {
+						Log.d("TouchController", "보상형 광고 로드 완료, 표시 시도");
+						showRewardedAdInternal();
+					}
+
+					@Override
+					public void onAdLoadFailed(String error) {
+						Log.e("TouchController", "보상형 광고 로드 실패: " + error);
+						UtilHelper.getInstance(mm).showToast("Failed to load reward ad");
+					}
+
+					@Override
+					public void onAdClosed() {
+						// 로드 콜백에서는 사용하지 않음
+					}
+
+					@Override
+					public void onAdShown() {
+						// 로드 콜백에서는 사용하지 않음
+					}
+
+					@Override
+					public void onAdShowFailed(String error) {
+						// 로드 콜백에서는 사용하지 않음
+					}
+				});
+			} else {
+				// 광고가 이미 준비되어 있다면 바로 표시
+				showRewardedAdInternal();
+			}
+
+		} catch (Exception e) {
+			Log.e("TouchController", "보상형 광고 표시 중 오류", e);
+		}
+	}
+
+	private void showRewardedAdInternal() {
+		try {
+			AdMobManager adMobManager = AdMobManager.getInstance(mm);
+
+			adMobManager.showRewardedAd(mm, new AdMobManager.OnRewardedAdShownListener() {
+				@Override
+				public void onAdShown() {
+					Log.d("TouchController", "보상형 광고 표시됨");
+				}
+
+				@Override
+				public void onAdClosed() {
+					Log.d("TouchController", "보상형 광고 닫힘");
+				}
+
+				@Override
+				public void onAdShowFailed(String error) {
+					Log.e("TouchController", "보상형 광고 표시 실패: " + error);
+					UtilHelper.getInstance(mm).showToast("Failed to show reward ad");
+				}
+
+				@Override
+				public void onAdNotReady() {
+					Log.w("TouchController", "보상형 광고가 준비되지 않음");
+					UtilHelper.getInstance(mm).showToast("Reward ad not ready");
+				}
+
+				@Override
+				public void onUserEarnedReward(int amount, String type) {
+					Log.d("TouchController", "사용자가 보상을 받음: " + amount + " " + type);
+
+					// 여기에 보상 처리 로직 추가
+					// 예: 게임 내 코인 증가, 아이템 지급 등
+					UtilHelper utilHelper = UtilHelper.getInstance(mm);
+					utilHelper.showToast("You earned " + amount + " " + type + "!");
+
+					// 필요에 따라 추가 보상 처리 로직 구현
+					handleUserReward(amount, type);
+				}
+			});
+
+		} catch (Exception e) {
+			Log.e("TouchController", "보상형 광고 표시 내부 처리 중 오류", e);
+		}
+	}
+
+	/**
+	 * 사용자 보상 처리 메서드 (필요에 따라 구현)
+	 */
+	private void handleUserReward(int amount, String type) {
+		try {
+			Log.d("TouchController", "사용자 보상 처리: " + amount + " " + type);
+
+			// TODO: 여기에 실제 보상 처리 로직 구현
+			// 예: 게임 내 화폐 증가, 특별 아이템 지급, 생명력 회복 등
+
+			// 예시: Emulator를 통한 게임 내 값 설정
+			// Emulator.setValue(Emulator.COIN_VALUE, amount);
+
+		} catch (Exception e) {
+			Log.e("TouchController", "사용자 보상 처리 중 오류", e);
+		}
 	}
 }

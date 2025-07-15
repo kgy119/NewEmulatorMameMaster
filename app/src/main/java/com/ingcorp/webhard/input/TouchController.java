@@ -304,6 +304,8 @@ public class TouchController implements IController {
 
 						UtilHelper utilHelper = UtilHelper.getInstance(mm);
 
+						mm.getInputView().updateCoinImages();
+
 						if (utilHelper.shouldShowRewardAd()) {
 							// 광고 진행 상태 설정
 							utilHelper.setAdInProgress(true);

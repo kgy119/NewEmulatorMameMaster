@@ -973,10 +973,26 @@ public class UtilHelper {
     }
 
     /**
+     * BTN_COIN 클릭시 다음순서 광고인지 이면 광고이미지로 변경
+     */
+    public boolean shouldShowRewardAdImage() {
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+
+        // 현재 BTN_COIN 클릭 수 가져오기
+        int currentClickCount = prefs.getInt(BTN_COIN_CLICK_COUNT_KEY, 0);
+
+        // 리워드 광고 주기 가져오기
+        int adRewardCoinCnt = getAdFullCoinCount();
+
+        Log.e(Constants.LOG_TAG, "코인클릭수 : "+prefs.getInt(BTN_COIN_CLICK_COUNT_KEY, 0)+"  리워드 광고 주기 : " + adRewardCoinCnt);
+
+        // 주기로 나누어서 나머지가 0인지 확인 (광고 노출 순서인지)
+        return ((currentClickCount + 2) % adRewardCoinCnt) == 0;
+    }
+
+    /**
      * BTN_COIN 클릭 수 증가 및 리워드 광고 노출 순서인지 체크
      */
-
-
     // 기존 shouldShowRewardAd() 메서드를 수정
     public boolean shouldShowRewardAd() {
         SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);

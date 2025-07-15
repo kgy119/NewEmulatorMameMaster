@@ -293,6 +293,12 @@ public class MAME4droid extends Activity {
 
 		getMainHelper().updateMAME4droid();
 
+		AdMobManager adMobManager = AdMobManager.getInstance(this);
+		if (adMobManager != null) {
+			Log.d("EMULATOR", "화면 회전으로 인한 AdMob 광고 재로드 요청");
+			adMobManager.checkOrientationAndReloadAd(this);
+		}
+
 		overridePendingTransition(0, 0);
 	}
 

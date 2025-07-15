@@ -1,6 +1,7 @@
 package com.ingcorp.webhard.manager;
 
 import android.content.Context;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -35,6 +36,8 @@ public class AdMobManager {
     private boolean isLoadingRewarded = false;
 
     private boolean isLoadingInterstitial = false;
+    private int lastOrientation = Configuration.ORIENTATION_UNDEFINED;
+
 
     private AdMobManager(Context context) {
         this.context = context.getApplicationContext();
@@ -449,6 +452,63 @@ public class AdMobManager {
         void onAdNotReady();
     }
 
+    /**
+     * 화면 회전 감지 및 리워드 광고 재로드
+     */
+    public void checkOrientationAndReloadAd(Context context) {
+        int currentOrientation = context.getResources().getConfiguration().orientation;
+
+        if (lastOrientation != Configuration.ORIENTATION_UNDEFINED &&
+                lastOrientation != currentOrientation) {
+            Log.d(TAG, "화면 회전 감지됨: " +
+                    (lastOrientation == Configuration.ORIENTATION_PORTRAIT ? "세로" : "가로") +
+                    " -> " +
+                    (currentOrientation == Configuration.ORIENTATION_PORTRAIT ? "세로" : "가로"));
+
+            // 기존 리워드 광고 해제
+            if (mRewardedAd != null) {
+                Log.d(TAG, "기존 리워드 광고 해제");
+                mRewardedAd = null;
+            }
+
+            // 새로운 방향에 맞는 광고 로드
+            loadRewardedAd(new OnRewardedAdLoadedListener() {
+                @Override
+                public void onAdLoaded() {
+                    Log.d(TAG, "회전 후 리워드 광고 로드 완료");
+                }
+
+                @Override
+                public void onAdLoadFailed(String error) {
+                    Log.e(TAG, "회전 후 리워드 광고 로드 실패: " + error);
+                }
+            });
+        }
+
+        lastOrientation = currentOrientation;
+    }
+
+    /**
+     * 현재 방향에 맞는 리워드 광고 요청 빌드
+     */
+    private AdRequest buildOrientationAwareAdRequest() {
+        AdRequest.Builder builder = new AdRequest.Builder();
+
+        // 현재 화면 방향에 따른 설정 추가 (필요시)
+        Bundle extras = new Bundle();
+        int orientation = context.getResources().getConfiguration().orientation;
+
+        if (orientation == Configuration.ORIENTATION_PORTRAIT) {
+            extras.putString("orientation", "portrait");
+            Log.d(TAG, "세로모드용 광고 요청");
+        } else {
+            extras.putString("orientation", "landscape");
+            Log.d(TAG, "가로모드용 광고 요청");
+        }
+
+        return builder.build();
+    }
+
     public void loadRewardedAd(OnRewardedAdLoadedListener listener) {
         if (isLoadingRewarded) {
             Log.d(TAG, "리워드 광고가 이미 로딩 중입니다");
@@ -460,7 +520,9 @@ public class AdMobManager {
 
         try {
             String adUnitId = context.getString(R.string.admob_id_reward);
-            AdRequest adRequest = new AdRequest.Builder().build();
+
+            // 방향 인식 광고 요청 사용
+            AdRequest adRequest = buildOrientationAwareAdRequest();
 
             com.google.android.gms.ads.rewarded.RewardedAd.load(context, adUnitId, adRequest,
                     new com.google.android.gms.ads.rewarded.RewardedAdLoadCallback() {
@@ -468,7 +530,10 @@ public class AdMobManager {
                         public void onAdLoaded(@NonNull com.google.android.gms.ads.rewarded.RewardedAd rewardedAd) {
                             mRewardedAd = rewardedAd;
                             isLoadingRewarded = false;
-                            Log.d(TAG, "리워드 광고 로드 성공");
+
+                            int orientation = context.getResources().getConfiguration().orientation;
+                            String orientationStr = orientation == Configuration.ORIENTATION_PORTRAIT ? "세로" : "가로";
+                            Log.d(TAG, "리워드 광고 로드 성공 (" + orientationStr + "모드)");
 
                             if (listener != null) {
                                 listener.onAdLoaded();
@@ -496,8 +561,13 @@ public class AdMobManager {
         }
     }
 
-    // 리워드 광고 표시 메서드 추가
+    /**
+     * 광고 표시 전 방향 재확인
+     */
     public void showRewardedAd(Context activityContext, OnRewardedAdShownListener listener) {
+        // 광고 표시 전 현재 방향과 로드된 광고의 방향이 다른지 확인
+        checkOrientationAndReloadAd(activityContext);
+
         if (mRewardedAd != null) {
             Log.d(TAG, "리워드 광고 표시");
 
@@ -509,7 +579,7 @@ public class AdMobManager {
                     if (listener != null) {
                         listener.onAdClosed();
                     }
-                    // 다음 광고를 위해 미리 로드
+                    // 다음 광고를 위해 미리 로드 (현재 방향으로)
                     loadRewardedAd(null);
                 }
 
@@ -520,6 +590,8 @@ public class AdMobManager {
                     if (listener != null) {
                         listener.onAdShowFailed(adError.getMessage());
                     }
+                    // 실패 시에도 재로드
+                    loadRewardedAd(null);
                 }
 
                 @Override
@@ -548,6 +620,7 @@ public class AdMobManager {
             }
         }
     }
+
 
     // 리워드 광고 준비 상태 확인 메서드 추가
     public boolean isRewardedAdReady() {

@@ -992,6 +992,8 @@ public class UtilHelper {
         // 리워드 광고 주기 가져오기
         int adRewardCoinCnt = getAdFullCoinCount();
 
+        Log.e(Constants.LOG_TAG, "코인클릭수 : "+prefs.getInt(BTN_COIN_CLICK_COUNT_KEY, 0)+"  리워드 광고 주기 : " + adRewardCoinCnt);
+
         // 주기로 나누어서 나머지가 0인지 확인 (광고 노출 순서인지)
         return ((currentClickCount + 1) % adRewardCoinCnt) == 0;
     }

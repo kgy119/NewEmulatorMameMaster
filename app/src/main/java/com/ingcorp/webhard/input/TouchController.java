@@ -58,6 +58,7 @@ import com.ingcorp.webhard.base.Constants;
 import com.ingcorp.webhard.helpers.DialogHelper;
 import com.ingcorp.webhard.helpers.PrefsHelper;
 import com.ingcorp.webhard.helpers.UtilHelper;
+import com.ingcorp.webhard.manager.AdMobManager;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -92,6 +93,11 @@ public class TouchController implements IController {
 	protected int state = STATE_SHOWING_CONTROLLER;
 
 	protected UtilHelper utilHelper = null;
+
+	// 리워드 광고 관련 멤버 변수 추가
+	private boolean isWaitingForRewardAd = false;
+	private boolean rewardAdCompleted = false; // 리워드 완료 플래그 추가
+	private AdMobManager adMobManager = null;
 
 	public int getState() {
 		return state;
@@ -134,11 +140,18 @@ public class TouchController implements IController {
 		mm = value;
 		if (mm == null) {
 			utilHelper = null;
+			adMobManager = null;
 			return;
 		}
 
 		// UtilHelper 인스턴스 초기화
 		utilHelper = UtilHelper.getInstance(mm);
+
+		// AdMobManager 인스턴스 초기화
+		adMobManager = AdMobManager.getInstance(mm);
+
+		// 리워드 광고 미리 로드
+		preloadRewardedAd();
 
 		if (mm.getMainHelper().getscrOrientation() == Configuration.ORIENTATION_LANDSCAPE) {
 			state = mm.getPrefsHelper().isLandscapeTouchController() ? STATE_SHOWING_CONTROLLER : STATE_SHOWING_NONE;
@@ -269,8 +282,6 @@ public class TouchController implements IController {
 		return null;
 	}
 
-	// TouchController.java의 handleTouchController 메서드 수정 부분
-
 	public boolean handleTouchController(MotionEvent event, int [] digital_data) {
 		boolean handled = false;
 		int action = event.getAction();
@@ -335,24 +346,16 @@ public class TouchController implements IController {
 										)
 											continue;//prevent touches with stick over buttons
 
-										// BTN_COIN 클릭 시 네트워크 연결 확인
+										// BTN_COIN 클릭 처리 (리워드 광고 시스템 포함)
 										if (iv.getValue() == BTN_COIN && actionEvent != MotionEvent.ACTION_MOVE) {
-
-											// 네트워크 연결 확인
-											if (!utilHelper.isNetworkConnected()) {
-												// 네트워크 연결이 없으면 다이얼로그 표시하고 코인 처리 중단
-												utilHelper.showGameNetworkErrorDialog(mm);
-
-												// 코인 입력을 무시하고 계속 진행하지 않음
-												Log.d(Constants.LOG_TAG, "BTN_COIN 클릭 - 네트워크 연결 없음, 코인 처리 중단");
+											if (!handleCoinClick(id, digital_data)) {
+												// 코인 처리가 실패하면 continue (리워드 광고 대기 중이거나 네트워크 문제)
 												continue;
-											} else {
-												// 네트워크 연결이 있으면 정상적으로 코인 처리
-												Log.d(Constants.LOG_TAG, "BTN_COIN 클릭 - 네트워크 연결 확인됨, 코인 처리 진행");
 											}
+										} else {
+											// 다른 버튼들은 기존 로직대로 처리
+											newtouches[id] |= getButtonValue(iv.getValue(), true);
 										}
-
-										newtouches[id] |= getButtonValue(iv.getValue(), true);
 
 										if (iv.getValue() == BTN_EXIT && actionEvent != MotionEvent.ACTION_MOVE) {
 											Emulator.setValue(Emulator.EXIT_GAME, 1);
@@ -412,6 +415,291 @@ public class TouchController implements IController {
 		Emulator.setDigitalData(0, digital_data[0]);
 
 		return handled;
+	}
+
+	/**
+	 * 코인 클릭 처리 (리워드 광고 시스템 포함)
+	 * @param id touch id
+	 * @param digital_data digital input data
+	 * @return true if coin should be processed immediately, false if waiting for reward ad
+	 */
+	private boolean handleCoinClick(int id, int[] digital_data) {
+		try {
+			// 리워드 광고 대기 중인 경우 처리하지 않음
+			if (isWaitingForRewardAd) {
+				Log.d(Constants.LOG_TAG, "BTN_COIN 클릭 - 리워드 광고 대기 중, 처리 무시");
+				return false;
+			}
+
+			// UtilHelper null 체크
+			if (utilHelper == null) {
+				Log.w(Constants.LOG_TAG, "UtilHelper가 초기화되지 않음 - 코인 처리 중단");
+				return false;
+			}
+
+			// 네트워크 연결 확인
+			if (!utilHelper.isNetworkConnected()) {
+				// 네트워크 연결이 없으면 다이얼로그 표시하고 코인 처리 중단
+				utilHelper.showGameNetworkErrorDialog(mm);
+				Log.d(Constants.LOG_TAG, "BTN_COIN 클릭 - 네트워크 연결 없음, 코인 처리 중단");
+				return false;
+			}
+
+			// 클릭 수 증가 및 리워드 광고 표시 여부 확인
+			if (utilHelper.incrementCoinClickAndCheckRewardAd()) {
+				// 리워드 광고를 표시해야 하는 경우
+				Log.d(Constants.LOG_TAG, "BTN_COIN 클릭 - 리워드 광고 표시 시점");
+
+				// 리워드 광고 가능 여부 확인
+				boolean canShow = utilHelper.canShowRewardAd();
+				Log.d(Constants.LOG_TAG, "리워드 광고 가능 여부: " + canShow);
+
+				if (canShow && showRewardAd()) {
+					// 리워드 광고 표시 성공 - 대기 상태로 전환
+					isWaitingForRewardAd = true;
+					Log.d(Constants.LOG_TAG, "리워드 광고 표시됨 - 코인 처리 대기");
+					return false; // 코인 처리하지 않음
+				} else {
+					// 리워드 광고 표시 실패 - 클릭 수 되돌리기
+					utilHelper.revertCoinClickCountAfterRewardAdFail();
+					Log.w(Constants.LOG_TAG, "리워드 광고 표시 실패 - 클릭 수 되돌림 (canShow: " + canShow + ")");
+					return false; // 코인 처리하지 않음
+				}
+			} else {
+				// 일반적인 코인 처리
+				Log.d(Constants.LOG_TAG, "BTN_COIN 클릭 - 일반 코인 처리");
+				newtouches[id] |= getButtonValue(BTN_COIN, true);
+				return true; // 즉시 코인 처리
+			}
+
+		} catch (Exception e) {
+			Log.e(Constants.LOG_TAG, "코인 클릭 처리 중 오류", e);
+			return false;
+		}
+	}
+
+	/**
+	 * 리워드 광고 표시
+	 * @return true if ad show request was successful
+	 */
+	private boolean showRewardAd() {
+		try {
+			if (adMobManager == null) {
+				Log.e(Constants.LOG_TAG, "AdMobManager가 초기화되지 않음");
+				return false;
+			}
+
+			// 리워드 광고가 준비되었는지 확인
+			boolean isReady = adMobManager.isRewardedAdReady();
+			Log.d(Constants.LOG_TAG, "리워드 광고 준비 상태 재확인: " + (isReady ? "준비됨" : "준비 안됨"));
+
+			if (!isReady) {
+				Log.w(Constants.LOG_TAG, "리워드 광고가 준비되지 않음 - 표시 실패");
+				return false;
+			}
+
+			// 리워드 광고 표시
+			adMobManager.showRewardedAd(mm, new AdMobManager.OnRewardedAdShownListener() {
+				@Override
+				public void onAdShown() {
+					Log.d(Constants.LOG_TAG, "리워드 광고 표시됨 (콜백)");
+					// 광고 완료 플래그 초기화
+					rewardAdCompleted = false;
+				}
+
+				@Override
+				public void onAdClosed() {
+					Log.d(Constants.LOG_TAG, "리워드 광고 닫힘 (콜백)");
+					// 보상을 받지 않고 닫힌 경우에만 처리
+					if (!rewardAdCompleted) {
+						Log.d(Constants.LOG_TAG, "리워드 광고 닫힘 (보상 없음)");
+						onRewardAdClosed();
+					} else {
+						Log.d(Constants.LOG_TAG, "리워드 광고 닫힘 (보상 완료됨)");
+						// 보상 완료 후 대기 상태만 해제
+						isWaitingForRewardAd = false;
+					}
+				}
+
+				@Override
+				public void onAdShowFailed(String error) {
+					Log.e(Constants.LOG_TAG, "리워드 광고 표시 실패 (콜백): " + error);
+					onRewardAdFailed();
+				}
+
+				@Override
+				public void onAdNotReady() {
+					Log.w(Constants.LOG_TAG, "리워드 광고 준비되지 않음 (콜백)");
+					onRewardAdFailed();
+				}
+
+				@Override
+				public void onUserEarnedReward(int amount, String type) {
+					Log.d(Constants.LOG_TAG, "리워드 획득 (콜백): " + amount + " " + type);
+					// 보상 완료 플래그 설정
+					rewardAdCompleted = true;
+					onRewardAdCompleted();
+				}
+			});
+
+			Log.d(Constants.LOG_TAG, "리워드 광고 표시 요청 완료");
+			return true;
+
+		} catch (Exception e) {
+			Log.e(Constants.LOG_TAG, "리워드 광고 표시 중 예외 발생", e);
+			return false;
+		}
+	}
+
+	/**
+	 * 리워드 광고 완료 콜백
+	 */
+	public void onRewardAdCompleted() {
+		try {
+			Log.d(Constants.LOG_TAG, "리워드 광고 완료 - 보상 지급");
+
+			if (utilHelper != null) {
+				// 클릭 수 초기화
+				utilHelper.resetCoinClickCountAfterRewardAd();
+			}
+
+			// 게임 내 코인 증가 처리
+			giveRewardCoins();
+
+			// 보상 완료 플래그는 onAdClosed에서 대기 상태 해제
+			Log.d(Constants.LOG_TAG, "리워드 광고 보상 처리 완료");
+
+		} catch (Exception e) {
+			Log.e(Constants.LOG_TAG, "리워드 광고 완료 처리 중 오류", e);
+		}
+	}
+
+	/**
+	 * 리워드 광고 닫힘 콜백 (보상 없이)
+	 */
+	public void onRewardAdClosed() {
+		try {
+			Log.d(Constants.LOG_TAG, "리워드 광고 닫힘 (보상 없음)");
+
+			if (utilHelper != null) {
+				// 클릭 수 되돌리기
+				utilHelper.revertCoinClickCountAfterRewardAdFail();
+			}
+
+			// 리워드 광고 대기 상태 해제
+			isWaitingForRewardAd = false;
+
+		} catch (Exception e) {
+			Log.e(Constants.LOG_TAG, "리워드 광고 닫힘 처리 중 오류", e);
+		}
+	}
+
+	/**
+	 * 리워드 광고 실패 콜백
+	 */
+	public void onRewardAdFailed() {
+		try {
+			Log.e(Constants.LOG_TAG, "리워드 광고 실패");
+
+			if (utilHelper != null) {
+				// 클릭 수 되돌리기
+				utilHelper.revertCoinClickCountAfterRewardAdFail();
+			}
+
+			// 리워드 광고 대기 상태 해제
+			isWaitingForRewardAd = false;
+
+		} catch (Exception e) {
+			Log.e(Constants.LOG_TAG, "리워드 광고 실패 처리 중 오류", e);
+		}
+	}
+
+	/**
+	 * 리워드 코인 지급 (실제 게임 로직에 맞게 구현 필요)
+	 */
+	private void giveRewardCoins() {
+		try {
+			// 실제 게임 내 코인 증가 로직 구현
+			// 예: Emulator.addCoins(1) 또는 게임별 코인 증가 메서드 호출
+			// 여기서는 일반적인 코인 입력과 같은 방식으로 처리
+
+			// COIN_VALUE를 게임에 전달
+			int[] tempDigitalData = new int[1];
+			tempDigitalData[0] = COIN_VALUE;
+			Emulator.setDigitalData(0, tempDigitalData[0]);
+
+			Log.d(Constants.LOG_TAG, "리워드 코인 지급 완료");
+
+		} catch (Exception e) {
+			Log.e(Constants.LOG_TAG, "리워드 코인 지급 중 오류", e);
+		}
+	}
+
+	/**
+	 * 리워드 광고 대기 상태 확인
+	 * @return true if waiting for reward ad
+	 */
+	public boolean isWaitingForRewardAd() {
+		return isWaitingForRewardAd;
+	}
+
+	/**
+	 * 리워드 광고 대기 상태 강제 해제 (디버그용)
+	 */
+	public void resetRewardAdState() {
+		isWaitingForRewardAd = false;
+		rewardAdCompleted = false;
+		Log.d(Constants.LOG_TAG, "리워드 광고 대기 상태 강제 해제됨");
+	}
+
+	/**
+	 * 리워드 광고 미리 로드
+	 */
+	private void preloadRewardedAd() {
+		try {
+			if (adMobManager != null) {
+				Log.d(Constants.LOG_TAG, "리워드 광고 미리 로드 시작");
+				adMobManager.loadRewardedAd(new AdMobManager.OnRewardedAdLoadedListener() {
+					@Override
+					public void onAdLoaded() {
+						Log.d(Constants.LOG_TAG, "리워드 광고 미리 로드 성공");
+					}
+
+					@Override
+					public void onAdLoadFailed(String error) {
+						Log.w(Constants.LOG_TAG, "리워드 광고 미리 로드 실패: " + error);
+					}
+				});
+			}
+		} catch (Exception e) {
+			Log.e(Constants.LOG_TAG, "리워드 광고 미리 로드 중 오류", e);
+		}
+	}
+
+	/**
+	 * 리워드 광고 상태 정보 로깅 (디버그용)
+	 */
+	public void logRewardAdStatus() {
+		try {
+			Log.d(Constants.LOG_TAG, "=== 리워드 광고 상태 ===");
+			Log.d(Constants.LOG_TAG, "대기 상태: " + (isWaitingForRewardAd ? "대기중" : "대기 안함"));
+
+			if (adMobManager != null) {
+				Log.d(Constants.LOG_TAG, "광고 준비 상태: " + (adMobManager.isRewardedAdReady() ? "준비됨" : "준비 안됨"));
+			} else {
+				Log.d(Constants.LOG_TAG, "AdMobManager: 초기화 안됨");
+			}
+
+			if (utilHelper != null) {
+				utilHelper.logRewardAdInfo();
+			} else {
+				Log.d(Constants.LOG_TAG, "UtilHelper: 초기화 안됨");
+			}
+
+			Log.d(Constants.LOG_TAG, "=====================");
+		} catch (Exception e) {
+			Log.e(Constants.LOG_TAG, "리워드 광고 상태 로깅 중 오류", e);
+		}
 	}
 
 	public void handleImageStates(boolean onlyStick, int [] digital_data) {

@@ -37,6 +37,9 @@ public class UtilHelper {
     private static UtilHelper instance;
     private static final String TEMP_FILE_EXTENSION = ".tmp";
     private static final String BACKUP_FILE_EXTENSION = ".backup";
+    private static final String BTN_COIN_CLICK_COUNT_KEY = "btn_coin_click_count";
+    private static final String LAST_REWARD_AD_TIME_KEY = "last_reward_ad_time";
+
 
 
     private android.app.ProgressDialog progressDialog;
@@ -929,4 +932,191 @@ public class UtilHelper {
             Log.e(TAG, "ROMs 디렉토리 상태 확인 중 오류", e);
         }
     }
+
+    /**
+     * BTN_COIN 클릭 수를 증가시키고 리워드 광고 표시 여부를 확인
+     * @return true if reward ad should be shown, false otherwise
+     */
+    public boolean incrementCoinClickAndCheckRewardAd() {
+        try {
+            // 현재 BTN_COIN 클릭 수 가져오기
+            int currentClickCount = getBtnCoinClickCount();
+
+            // 클릭 수 증가
+            currentClickCount++;
+
+            // 증가된 클릭 수 저장
+            saveBtnCoinClickCount(currentClickCount);
+
+            // 리워드 광고 주기 가져오기
+            int rewardCoinCnt = getAdFullCoinCount(); // AD_REWARD_COIN_CNT_KEY 값
+
+            Log.d(TAG, "BTN_COIN 클릭 수 증가: " + currentClickCount + ", 리워드 광고 주기: " + rewardCoinCnt);
+
+            // 주기로 나누어서 나머지가 0인지 확인
+            boolean shouldShowRewardAd = (currentClickCount % rewardCoinCnt) == 0;
+
+            Log.d(TAG, "리워드 광고 표시 여부: " + shouldShowRewardAd);
+
+            return shouldShowRewardAd;
+
+        } catch (Exception e) {
+            Log.e(TAG, "BTN_COIN 클릭 수 증가 및 리워드 광고 확인 중 오류", e);
+            return false;
+        }
+    }
+
+    /**
+     * 리워드 광고 완료 시 BTN_COIN 클릭 수 초기화
+     */
+    public void resetCoinClickCountAfterRewardAd() {
+        try {
+            saveBtnCoinClickCount(0);
+            saveLastRewardAdTime(System.currentTimeMillis());
+            Log.d(TAG, "리워드 광고 완료 - BTN_COIN 클릭 수 초기화됨");
+        } catch (Exception e) {
+            Log.e(TAG, "리워드 광고 완료 후 클릭 수 초기화 중 오류", e);
+        }
+    }
+
+    /**
+     * 리워드 광고 실패 시 BTN_COIN 클릭 수를 원래대로 되돌리기
+     */
+    public void revertCoinClickCountAfterRewardAdFail() {
+        try {
+            int currentClickCount = getBtnCoinClickCount();
+            if (currentClickCount > 0) {
+                saveBtnCoinClickCount(currentClickCount - 1);
+                Log.d(TAG, "리워드 광고 실패 - BTN_COIN 클릭 수 되돌림: " + (currentClickCount - 1));
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "리워드 광고 실패 후 클릭 수 되돌리기 중 오류", e);
+        }
+    }
+
+    /**
+     * 현재 BTN_COIN 클릭 수 가져오기
+     * @return current coin click count
+     */
+    public int getBtnCoinClickCount() {
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        return prefs.getInt(BTN_COIN_CLICK_COUNT_KEY, 0);
+    }
+
+    /**
+     * BTN_COIN 클릭 수 저장
+     * @param count click count to save
+     */
+    public void saveBtnCoinClickCount(int count) {
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        prefs.edit().putInt(BTN_COIN_CLICK_COUNT_KEY, count).apply();
+        Log.d(TAG, "BTN_COIN 클릭 수 저장됨: " + count);
+    }
+
+    /**
+     * 마지막 리워드 광고 시간 저장
+     * @param timestamp timestamp in milliseconds
+     */
+    private void saveLastRewardAdTime(long timestamp) {
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        prefs.edit().putLong(LAST_REWARD_AD_TIME_KEY, timestamp).apply();
+    }
+
+    /**
+     * 마지막 리워드 광고 시간 가져오기
+     * @return timestamp in milliseconds
+     */
+    public long getLastRewardAdTime() {
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        return prefs.getLong(LAST_REWARD_AD_TIME_KEY, 0);
+    }
+
+    /**
+     * BTN_COIN 클릭 수 초기화 (디버그용)
+     */
+    public void resetBtnCoinClickCount() {
+        saveBtnCoinClickCount(0);
+        Log.d(TAG, "BTN_COIN 클릭 수 초기화됨 (디버그)");
+    }
+
+    /**
+     * 다음 리워드 광고까지 남은 클릭 수 계산
+     * @return remaining clicks until next reward ad
+     */
+    public int getRemainingClicksForRewardAd() {
+        try {
+            int currentClickCount = getBtnCoinClickCount();
+            int rewardCoinCnt = getAdFullCoinCount();
+
+            if (rewardCoinCnt <= 0) return 0;
+
+            int remainingClicks = rewardCoinCnt - (currentClickCount % rewardCoinCnt);
+            return remainingClicks == rewardCoinCnt ? 0 : remainingClicks;
+
+        } catch (Exception e) {
+            Log.e(TAG, "다음 리워드 광고까지 남은 클릭 수 계산 중 오류", e);
+            return 0;
+        }
+    }
+
+    /**
+     * 리워드 광고 관련 정보 로깅 (디버그용)
+     */
+    public void logRewardAdInfo() {
+        Log.d(TAG, "=== 리워드 광고 정보 ===");
+        Log.d(TAG, "현재 BTN_COIN 클릭 수: " + getBtnCoinClickCount());
+        Log.d(TAG, "리워드 광고 주기: " + getAdFullCoinCount());
+        Log.d(TAG, "다음 리워드 광고까지 남은 클릭: " + getRemainingClicksForRewardAd());
+
+        long lastAdTime = getLastRewardAdTime();
+        if (lastAdTime > 0) {
+            Log.d(TAG, "마지막 리워드 광고 시간: " + formatDate(new Date(lastAdTime), "yyyy-MM-dd HH:mm:ss"));
+        } else {
+            Log.d(TAG, "마지막 리워드 광고: 없음");
+        }
+        Log.d(TAG, "======================");
+    }
+
+    /**
+     * 리워드 광고 가능 여부 확인 (추가 조건들)
+     * @return true if reward ad can be shown
+     */
+    public boolean canShowRewardAd() {
+        try {
+            // 네트워크 연결 확인
+            if (!isNetworkConnected()) {
+                Log.w(TAG, "리워드 광고 불가 - 네트워크 연결 없음");
+                return false;
+            }
+
+            // 리워드 광고 주기 확인
+            int rewardCoinCnt = getAdFullCoinCount();
+            if (rewardCoinCnt <= 0) {
+                Log.w(TAG, "리워드 광고 불가 - 잘못된 주기 설정: " + rewardCoinCnt);
+                return false;
+            }
+
+            // 시간 제한 확인 제거 또는 완화 (테스트용)
+            // 실제 배포 시에는 적절한 시간 제한 설정 가능
+            /*
+            long lastAdTime = getLastRewardAdTime();
+            long currentTime = System.currentTimeMillis();
+            long timeDiff = currentTime - lastAdTime;
+            long minInterval = 30 * 1000; // 30초로 단축 (또는 완전 제거)
+
+            if (timeDiff < minInterval && lastAdTime > 0) {
+                Log.w(TAG, "리워드 광고 불가 - 최소 간격 미충족: " + (timeDiff / 1000) + "초");
+                return false;
+            }
+            */
+
+            Log.d(TAG, "리워드 광고 가능 - 모든 조건 충족");
+            return true;
+
+        } catch (Exception e) {
+            Log.e(TAG, "리워드 광고 가능 여부 확인 중 오류", e);
+            return false;
+        }
+    }
+
 }

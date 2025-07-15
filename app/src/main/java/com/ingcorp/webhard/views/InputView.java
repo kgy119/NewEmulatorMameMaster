@@ -62,8 +62,10 @@ import com.ingcorp.webhard.Emulator;
 import com.ingcorp.webhard.MAME4droid;
 import com.ingcorp.webhard.R;
 import com.ingcorp.webhard.helpers.PrefsHelper;
+import com.ingcorp.webhard.helpers.UtilHelper;
 import com.ingcorp.webhard.input.ControlCustomizer;
 import com.ingcorp.webhard.input.IController;
+import com.ingcorp.webhard.input.InputHandler;
 import com.ingcorp.webhard.input.InputValue;
 import com.ingcorp.webhard.input.TiltSensor;
 import com.ingcorp.webhard.input.TouchController;
@@ -159,10 +161,18 @@ public class InputView extends ImageView {
             btns_images[IController.BTN_START][IController.BTN_PRESS_STATE]
                     = (BitmapDrawable) mm.getResources().getDrawable(R.drawable.button_start_press);
 
-            btns_images[IController.BTN_COIN][IController.BTN_NO_PRESS_STATE]
-                    = (BitmapDrawable) mm.getResources().getDrawable(R.drawable.button_coin);
-            btns_images[IController.BTN_COIN][IController.BTN_PRESS_STATE]
-                    = (BitmapDrawable) mm.getResources().getDrawable(R.drawable.button_coin_press);
+            if(UtilHelper.getInstance(mm).shouldShowRewardAd()) {
+
+                btns_images[IController.BTN_COIN][IController.BTN_NO_PRESS_STATE]
+                        = (BitmapDrawable) mm.getResources().getDrawable(R.drawable.button_coin_ad);
+                btns_images[IController.BTN_COIN][IController.BTN_PRESS_STATE]
+                        = (BitmapDrawable) mm.getResources().getDrawable(R.drawable.button_coin_press_ad);
+            }else{
+                btns_images[IController.BTN_COIN][IController.BTN_NO_PRESS_STATE]
+                        = (BitmapDrawable) mm.getResources().getDrawable(R.drawable.button_coin);
+                btns_images[IController.BTN_COIN][IController.BTN_PRESS_STATE]
+                        = (BitmapDrawable) mm.getResources().getDrawable(R.drawable.button_coin_press);
+            }
         }
     }
 
@@ -268,6 +278,24 @@ public class InputView extends ImageView {
                 btns_images[v.getValue()][IController.BTN_NO_PRESS_STATE].setAlpha(mm.getMainHelper().getControllerAlpha());
             }
         }
+    }
+
+    public void updateCoinImages(){
+        if(UtilHelper.getInstance(mm).shouldShowRewardAdImage()) {
+
+            btns_images[IController.BTN_COIN][IController.BTN_NO_PRESS_STATE]
+                    = (BitmapDrawable) mm.getResources().getDrawable(R.drawable.button_coin_ad);
+            btns_images[IController.BTN_COIN][IController.BTN_PRESS_STATE]
+                    = (BitmapDrawable) mm.getResources().getDrawable(R.drawable.button_coin_press_ad);
+        }else{
+            btns_images[IController.BTN_COIN][IController.BTN_NO_PRESS_STATE]
+                    = (BitmapDrawable) mm.getResources().getDrawable(R.drawable.button_coin);
+            btns_images[IController.BTN_COIN][IController.BTN_PRESS_STATE]
+                    = (BitmapDrawable) mm.getResources().getDrawable(R.drawable.button_coin_press);
+        }
+
+        updateImages();
+
     }
 
     @Override

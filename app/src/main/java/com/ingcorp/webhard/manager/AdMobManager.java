@@ -31,6 +31,9 @@ public class AdMobManager {
     private Context context;
     private AdView mBannerAdView;
     private InterstitialAd mInterstitialAd;
+    private com.google.android.gms.ads.rewarded.RewardedAd mRewardedAd;
+    private boolean isLoadingRewarded = false;
+
     private boolean isLoadingInterstitial = false;
 
     private AdMobManager(Context context) {
@@ -445,4 +448,124 @@ public class AdMobManager {
         void onAdShowFailed(String error);
         void onAdNotReady();
     }
+
+    public void loadRewardedAd(OnRewardedAdLoadedListener listener) {
+        if (isLoadingRewarded) {
+            Log.d(TAG, "리워드 광고가 이미 로딩 중입니다");
+            return;
+        }
+
+        Log.d(TAG, "리워드 광고 로드 시작");
+        isLoadingRewarded = true;
+
+        try {
+            String adUnitId = context.getString(R.string.admob_id_reward);
+            AdRequest adRequest = new AdRequest.Builder().build();
+
+            com.google.android.gms.ads.rewarded.RewardedAd.load(context, adUnitId, adRequest,
+                    new com.google.android.gms.ads.rewarded.RewardedAdLoadCallback() {
+                        @Override
+                        public void onAdLoaded(@NonNull com.google.android.gms.ads.rewarded.RewardedAd rewardedAd) {
+                            mRewardedAd = rewardedAd;
+                            isLoadingRewarded = false;
+                            Log.d(TAG, "리워드 광고 로드 성공");
+
+                            if (listener != null) {
+                                listener.onAdLoaded();
+                            }
+                        }
+
+                        @Override
+                        public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
+                            isLoadingRewarded = false;
+                            Log.e(TAG, "리워드 광고 로드 실패: " + loadAdError.getMessage());
+                            mRewardedAd = null;
+
+                            if (listener != null) {
+                                listener.onAdLoadFailed(loadAdError.getMessage());
+                            }
+                        }
+                    });
+
+        } catch (Exception e) {
+            isLoadingRewarded = false;
+            Log.e(TAG, "리워드 광고 로드 중 예외 발생: " + e.getMessage(), e);
+            if (listener != null) {
+                listener.onAdLoadFailed("리워드 광고 로드 중 예외 발생: " + e.getMessage());
+            }
+        }
+    }
+
+    // 리워드 광고 표시 메서드 추가
+    public void showRewardedAd(Context activityContext, OnRewardedAdShownListener listener) {
+        if (mRewardedAd != null) {
+            Log.d(TAG, "리워드 광고 표시");
+
+            mRewardedAd.setFullScreenContentCallback(new FullScreenContentCallback() {
+                @Override
+                public void onAdDismissedFullScreenContent() {
+                    Log.d(TAG, "리워드 광고 닫힘");
+                    mRewardedAd = null;
+                    if (listener != null) {
+                        listener.onAdClosed();
+                    }
+                    // 다음 광고를 위해 미리 로드
+                    loadRewardedAd(null);
+                }
+
+                @Override
+                public void onAdFailedToShowFullScreenContent(com.google.android.gms.ads.AdError adError) {
+                    Log.e(TAG, "리워드 광고 표시 실패: " + adError.getMessage());
+                    mRewardedAd = null;
+                    if (listener != null) {
+                        listener.onAdShowFailed(adError.getMessage());
+                    }
+                }
+
+                @Override
+                public void onAdShowedFullScreenContent() {
+                    Log.d(TAG, "리워드 광고 표시됨");
+                    if (listener != null) {
+                        listener.onAdShown();
+                    }
+                }
+            });
+
+            mRewardedAd.show((android.app.Activity) activityContext,
+                    new com.google.android.gms.ads.OnUserEarnedRewardListener() {
+                        @Override
+                        public void onUserEarnedReward(@NonNull com.google.android.gms.ads.rewarded.RewardItem rewardItem) {
+                            Log.d(TAG, "리워드 획득: " + rewardItem.getAmount() + " " + rewardItem.getType());
+                            if (listener != null) {
+                                listener.onRewardEarned(rewardItem.getAmount(), rewardItem.getType());
+                            }
+                        }
+                    });
+        } else {
+            Log.w(TAG, "리워드 광고가 준비되지 않음");
+            if (listener != null) {
+                listener.onAdNotReady();
+            }
+        }
+    }
+
+    // 리워드 광고 준비 상태 확인 메서드 추가
+    public boolean isRewardedAdReady() {
+        return mRewardedAd != null;
+    }
+
+    // 리워드 광고 관련 인터페이스 추가 (클래스 하단)
+    public interface OnRewardedAdLoadedListener {
+        void onAdLoaded();
+        void onAdLoadFailed(String error);
+    }
+
+    public interface OnRewardedAdShownListener {
+        void onAdShown();
+        void onAdClosed();
+        void onAdShowFailed(String error);
+        void onAdNotReady();
+        void onRewardEarned(int amount, String type);
+    }
+
 }

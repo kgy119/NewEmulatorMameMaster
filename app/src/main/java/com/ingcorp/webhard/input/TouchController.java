@@ -49,12 +49,17 @@ import android.content.res.Configuration;
 import android.graphics.Rect;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
+import android.util.Log;
 import android.view.MotionEvent;
 
 import com.ingcorp.webhard.Emulator;
 import com.ingcorp.webhard.MAME4droid;
+import com.ingcorp.webhard.R;
+import com.ingcorp.webhard.base.Constants;
 import com.ingcorp.webhard.helpers.DialogHelper;
 import com.ingcorp.webhard.helpers.PrefsHelper;
+import com.ingcorp.webhard.helpers.UtilHelper;
+import com.ingcorp.webhard.manager.AdMobManager;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -290,8 +295,31 @@ public class TouchController implements IController {
 			if (actionEvent == MotionEvent.ACTION_UP
 					|| (actionEvent == MotionEvent.ACTION_POINTER_UP && actionPointerId == pid)
 					|| actionEvent == MotionEvent.ACTION_CANCEL) {
-				//nada
-			} else {
+
+				for (int j = 0; j < values.size(); j++) {
+					InputValue iv = values.get(j);
+
+					if (iv.getRect().contains(x, y) && isHandledTouchItem(iv) &&
+							iv.getType() == TYPE_BUTTON_RECT && iv.getValue() == BTN_COIN) {
+
+						UtilHelper utilHelper = UtilHelper.getInstance(mm);
+
+						if (utilHelper.shouldShowRewardAd()) {
+							// 광고 진행 상태 설정
+							utilHelper.setAdInProgress(true);
+							// 리워드 광고 표시
+							showRewardAd();
+						} else {
+							// 아니면 기존 로직대로 게임내 coin 수 증가
+							handleNormalCoinIncrease();
+							// 일반 클릭 수 증가
+							utilHelper.completeRewardAd();
+						}
+						break;
+					}
+				}
+
+		} else {
 				//int id = i;
 				int id = actionPointerId;
 				if (id > touchstates.length)
@@ -734,4 +762,68 @@ public class TouchController implements IController {
 		//vibrator.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_TICK));
 		//vibrator.vibrate(VibrationEffect.createOneShot(1L, 180));
 	}
+
+	private void showRewardAd() {
+		if (mm == null) return;
+
+		mm.runOnUiThread(() -> {
+			AdMobManager adMobManager = AdMobManager.getInstance(mm);
+
+			if (adMobManager.isRewardedAdReady()) {
+				// 리워드 광고 표시
+				adMobManager.showRewardedAd(mm, new AdMobManager.OnRewardedAdShownListener() {
+					@Override
+					public void onAdShown() {
+						Log.d(Constants.LOG_TAG, "리워드 광고 표시됨");
+					}
+
+					@Override
+					public void onAdClosed() {
+						Log.d(Constants.LOG_TAG, "리워드 광고 닫힘 - 보상 없음");
+						UtilHelper.getInstance(mm).cancelRewardAd();
+					}
+
+					@Override
+					public void onAdShowFailed(String error) {
+						Log.e(Constants.LOG_TAG, "리워드 광고 표시 실패: " + error);
+						UtilHelper.getInstance(mm).cancelRewardAd();
+					}
+
+					@Override
+					public void onAdNotReady() {
+						Log.w(Constants.LOG_TAG, "리워드 광고가 준비되지 않음");
+						UtilHelper.getInstance(mm).cancelRewardAd();
+						// 일반 코인 증가로 대체
+						handleNormalCoinIncrease();
+					}
+
+					@Override
+					public void onRewardEarned(int amount, String type) {
+						Log.d(Constants.LOG_TAG, "리워드 획득: " + amount + " " + type);
+						// 코인 증가 및 클릭 수 증가
+						handleRewardCoinIncrease();
+						UtilHelper.getInstance(mm).completeRewardAd();
+					}
+				});
+			} else {
+				// 광고가 준비되지 않았으면 일반 코인 증가
+				Log.w(Constants.LOG_TAG, "리워드 광고가 준비되지 않아 일반 코인 증가");
+				UtilHelper.getInstance(mm).cancelRewardAd();
+				handleNormalCoinIncrease();
+			}
+		});
+	}
+
+	// 일반 코인 증가 처리 메서드 추가
+	private void handleNormalCoinIncrease() {
+		// 기존 코인 증가 로직 구현
+		// 예: Emulator.setValue(Emulator.COIN_VALUE, currentCoins + 1);
+	}
+
+	// 리워드 코인 증가 처리 메서드 추가
+	private void handleRewardCoinIncrease() {
+		// 리워드 코인 증가 로직 구현 (일반보다 더 많은 코인)
+		// 예: Emulator.setValue(Emulator.COIN_VALUE, currentCoins + 5);
+	}
+
 }

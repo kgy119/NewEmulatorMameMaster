@@ -11,7 +11,7 @@ import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.WindowManager;
 import android.widget.Toast;
-import com.ingcorp.webhard.BuildConfig;
+
 import com.ingcorp.webhard.R;
 import com.ingcorp.webhard.base.Constants;
 
@@ -22,7 +22,7 @@ import java.util.Locale;
 
 public class UtilHelper {
 
-    private static final String TAG = Constants.LOG_TAG;
+    private static final String TAG = "UtilHelper";
     private static final String PREF_NAME = "WebHardPrefs";
 
     // 광고 설정 관련 키들
@@ -32,8 +32,6 @@ public class UtilHelper {
     private static final String GAME_CLICK_COUNT_KEY = "game_click_count";
     private static final String AD_NATIVE_CNT_KEY = "ad_native_cnt";
     private static final String KEY_GAME_LIST_VERSION = "game_list_version";
-    private static final String BTN_COIN_CLICK_COUNT_KEY = "btn_coin_click_count";
-
 
     private Context context;
     private static UtilHelper instance;
@@ -402,7 +400,7 @@ public class UtilHelper {
         return prefs.getInt(AD_FULL_CNT_KEY, 1); // 기본값: 1 (매번 표시)
     }
 
-    // 보상형 광고 코인 개수 가져오기
+    // 전면 광고 코인 개수 가져오기
     public int getAdFullCoinCount() {
         SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         return prefs.getInt(AD_REWARD_COIN_CNT_KEY, 5); // 기본값: 5
@@ -447,39 +445,12 @@ public class UtilHelper {
         Log.d(TAG, "게임 클릭 수 초기화됨");
     }
 
-    /**
-     * BTN_COIN 클릭 수 가져오기
-     */
-    public int getBtnCoinClickCount() {
-        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-        return prefs.getInt(BTN_COIN_CLICK_COUNT_KEY, 0);
-    }
-
-    /**
-     * BTN_COIN 클릭 수 초기화 (디버그용)
-     */
-    public void resetBtnCoinClickCount() {
-        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-        prefs.edit().putInt(BTN_COIN_CLICK_COUNT_KEY, 0).apply();
-        Log.d(TAG, "BTN_COIN 클릭 수 초기화됨");
-    }
-
-    /**
-     * BTN_COIN 및 광고 설정 정보 로깅 (디버그용)
-     */
-    public void logCoinAdSettings() {
-        Log.d(TAG, "=== BTN_COIN 및 광고 설정 정보 ===");
-        Log.d(TAG, "보상형 광고 코인 주기: " + getAdFullCoinCount());
-        Log.d(TAG, "현재 BTN_COIN 클릭 수: " + getBtnCoinClickCount());
-        Log.d(TAG, "===========================");
-    }
-
     // 광고 설정 정보 로깅 (디버그용)
     public void logAdSettings() {
         Log.d(TAG, "=== 광고 설정 정보 ===");
         Log.d(TAG, "배너 광고 사용: " + (isAdBannerEnabled() ? "예" : "아니오"));
         Log.d(TAG, "전면 광고 주기: " + getAdFullCount());
-        Log.d(TAG, "보상형 광고 코인: " + getAdFullCoinCount());
+        Log.d(TAG, "전면 광고 코인: " + getAdFullCoinCount());
         Log.d(TAG, "네이티브 광고 주기: " + getAdNativeCount());
         Log.d(TAG, "현재 게임 클릭 수: " + getGameClickCount());
         Log.d(TAG, "==================");
@@ -600,17 +571,6 @@ public class UtilHelper {
         }
     }
 
-    // 디버그 모드 확인
-    public boolean isDebugMode() {
-        return BuildConfig.DEBUG;
-    }
-
-    // 로그 메서드들
-    public void logDebug(String message) {
-        if (isDebugMode()) {
-            Log.d(TAG, message);
-        }
-    }
 
     public void logInfo(String message) {
         Log.i(TAG, message);
@@ -678,8 +638,8 @@ public class UtilHelper {
     }
 
     /**
-            * 앱 시작시 모든 임시 파일들을 정리하는 메서드
-    */
+     * 앱 시작시 모든 임시 파일들을 정리하는 메서드
+     */
     public void cleanupAllTemporaryFiles(String romsPath) {
         try {
             Log.d(TAG, "임시 파일 정리 시작: " + romsPath);
@@ -922,7 +882,6 @@ public class UtilHelper {
      * ROMs 디렉토리의 상태를 로깅하는 디버그 메서드
      */
     public void logRomsDirectoryStatus(String romsPath) {
-        if (!isDebugMode()) return;
 
         try {
             Log.d(TAG, "=== ROMs 디렉토리 상태 ===");
@@ -969,132 +928,5 @@ public class UtilHelper {
         } catch (Exception e) {
             Log.e(TAG, "ROMs 디렉토리 상태 확인 중 오류", e);
         }
-    }
-
-    /**
-     * BTN_COIN 클릭 수 증가 없이 보상형 광고 표시 여부만 확인
-     * 실제 클릭 수 증가는 광고 완료 후에만 수행
-     */
-    public boolean shouldShowRewardAdWithoutIncrement() {
-        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-
-        // 현재 BTN_COIN 클릭 수 가져오기 (증가시키지 않음)
-        int currentCoinClickCount = prefs.getInt(BTN_COIN_CLICK_COUNT_KEY, 0);
-
-        // 보상형 광고 코인 주기 가져오기
-        int adRewardCoinCnt = getAdFullCoinCount();
-
-        Log.d(TAG, "BTN_COIN 클릭 수 확인 (증가 전): " + currentCoinClickCount + ", 보상 광고 주기: " + adRewardCoinCnt);
-
-        // 다음 클릭이 주기에 해당하는지 확인 (currentCoinClickCount + 1)
-        boolean shouldShow = ((currentCoinClickCount + 1) % adRewardCoinCnt) == 0;
-
-        Log.d(TAG, "보상형 광고 표시 여부 (증가 전 확인): " + shouldShow);
-
-        return shouldShow;
-    }
-
-    /**
-     * BTN_COIN 클릭 수를 실제로 증가시키는 메서드
-     * 광고 완료 또는 광고 표시 조건이 아닐 때만 호출
-     */
-    public void incrementBtnCoinClickCount() {
-        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-
-        // 현재 BTN_COIN 클릭 수 가져오기
-        int currentCoinClickCount = prefs.getInt(BTN_COIN_CLICK_COUNT_KEY, 0);
-
-        // 클릭 수 증가
-        currentCoinClickCount++;
-
-        // 증가된 클릭 수 저장
-        prefs.edit().putInt(BTN_COIN_CLICK_COUNT_KEY, currentCoinClickCount).apply();
-
-        Log.d(TAG, "BTN_COIN 클릭 수 증가됨: " + currentCoinClickCount);
-    }
-
-    /**
-     * 기존 shouldShowRewardAd() 메서드 - 하위 호환성을 위해 유지하되 deprecated 처리
-     * @deprecated 대신 shouldShowRewardAdWithoutIncrement()와 incrementBtnCoinClickCount()를 별도로 사용
-     */
-    @Deprecated
-    public boolean shouldShowRewardAd() {
-        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-
-        // 현재 BTN_COIN 클릭 수 가져오기
-        int currentCoinClickCount = prefs.getInt(BTN_COIN_CLICK_COUNT_KEY, 0);
-
-        // 클릭 수 증가
-        currentCoinClickCount++;
-
-        // 증가된 클릭 수 저장
-        prefs.edit().putInt(BTN_COIN_CLICK_COUNT_KEY, currentCoinClickCount).apply();
-
-        // 보상형 광고 코인 주기 가져오기
-        int adRewardCoinCnt = getAdFullCoinCount();
-
-        Log.d(TAG, "BTN_COIN 클릭 수: " + currentCoinClickCount + ", 보상 광고 주기: " + adRewardCoinCnt);
-
-        // 주기로 나누어서 나머지가 0인지 확인
-        boolean shouldShow = (currentCoinClickCount % adRewardCoinCnt) == 0;
-
-        Log.d(TAG, "보상형 광고 표시 여부: " + shouldShow);
-
-        return shouldShow;
-    }
-
-/**
- * 광고 상태 추적을 위한 메서드들 (선택사항)
- */
-
-    /**
-     * 현재 보상형 광고가 진행 중인지 상태 저장
-     */
-    public void setRewardAdInProgress(boolean inProgress) {
-        saveBooleanPreference("reward_ad_in_progress", inProgress);
-        Log.d(TAG, "보상형 광고 진행 상태 설정: " + inProgress);
-    }
-
-    /**
-     * 현재 보상형 광고가 진행 중인지 확인
-     */
-    public boolean isRewardAdInProgress() {
-        return getBooleanPreference("reward_ad_in_progress", false);
-    }
-
-    /**
-     * BTN_COIN 클릭 통계 정보 로깅 (디버그용)
-     */
-    public void logBtnCoinStatistics() {
-        if (!isDebugMode()) return;
-
-        Log.d(TAG, "=== BTN_COIN 클릭 통계 ===");
-        Log.d(TAG, "현재 클릭 수: " + getBtnCoinClickCount());
-        Log.d(TAG, "보상 광고 주기: " + getAdFullCoinCount());
-        Log.d(TAG, "다음 광고까지: " + getClicksUntilNextRewardAd() + " 클릭");
-        Log.d(TAG, "광고 진행 중: " + (isRewardAdInProgress() ? "예" : "아니오"));
-        Log.d(TAG, "========================");
-    }
-
-    /**
-     * 다음 보상형 광고까지 남은 클릭 수 계산
-     */
-    public int getClicksUntilNextRewardAd() {
-        int currentClicks = getBtnCoinClickCount();
-        int adCycle = getAdFullCoinCount();
-
-        if (adCycle <= 0) return 0;
-
-        int remainder = currentClicks % adCycle;
-        return remainder == 0 ? adCycle : adCycle - remainder;
-    }
-
-    /**
-     * BTN_COIN 관련 설정을 모두 초기화하는 메서드 (디버그/테스트용)
-     */
-    public void resetAllBtnCoinSettings() {
-        resetBtnCoinClickCount();
-        setRewardAdInProgress(false);
-        Log.d(TAG, "BTN_COIN 관련 설정 모두 초기화됨");
     }
 }

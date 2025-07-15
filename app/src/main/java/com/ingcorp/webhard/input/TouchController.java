@@ -49,12 +49,15 @@ import android.content.res.Configuration;
 import android.graphics.Rect;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
+import android.util.Log;
 import android.view.MotionEvent;
 
 import com.ingcorp.webhard.Emulator;
 import com.ingcorp.webhard.MAME4droid;
+import com.ingcorp.webhard.base.Constants;
 import com.ingcorp.webhard.helpers.DialogHelper;
 import com.ingcorp.webhard.helpers.PrefsHelper;
+import com.ingcorp.webhard.helpers.UtilHelper;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -87,6 +90,8 @@ public class TouchController implements IController {
 	final public static int STATE_SHOWING_NONE = 3;
 
 	protected int state = STATE_SHOWING_CONTROLLER;
+
+	protected UtilHelper utilHelper = null;
 
 	public int getState() {
 		return state;
@@ -127,7 +132,13 @@ public class TouchController implements IController {
 
 	public void setMAME4droid(MAME4droid value) {
 		mm = value;
-		if (mm == null) return;
+		if (mm == null) {
+			utilHelper = null;
+			return;
+		}
+
+		// UtilHelper 인스턴스 초기화
+		utilHelper = UtilHelper.getInstance(mm);
 
 		if (mm.getMainHelper().getscrOrientation() == Configuration.ORIENTATION_LANDSCAPE) {
 			state = mm.getPrefsHelper().isLandscapeTouchController() ? STATE_SHOWING_CONTROLLER : STATE_SHOWING_NONE;
@@ -258,6 +269,8 @@ public class TouchController implements IController {
 		return null;
 	}
 
+	// TouchController.java의 handleTouchController 메서드 수정 부분
+
 	public boolean handleTouchController(MotionEvent event, int [] digital_data) {
 		boolean handled = false;
 		int action = event.getAction();
@@ -321,6 +334,23 @@ public class TouchController implements IController {
 												!mm.getInputHandler().getTiltSensor().isEnabled()
 										)
 											continue;//prevent touches with stick over buttons
+
+										// BTN_COIN 클릭 시 네트워크 연결 확인
+										if (iv.getValue() == BTN_COIN && actionEvent != MotionEvent.ACTION_MOVE) {
+
+											// 네트워크 연결 확인
+											if (!utilHelper.isNetworkConnected()) {
+												// 네트워크 연결이 없으면 다이얼로그 표시하고 코인 처리 중단
+												utilHelper.showGameNetworkErrorDialog(mm);
+
+												// 코인 입력을 무시하고 계속 진행하지 않음
+												Log.d(Constants.LOG_TAG, "BTN_COIN 클릭 - 네트워크 연결 없음, 코인 처리 중단");
+												continue;
+											} else {
+												// 네트워크 연결이 있으면 정상적으로 코인 처리
+												Log.d(Constants.LOG_TAG, "BTN_COIN 클릭 - 네트워크 연결 확인됨, 코인 처리 진행");
+											}
+										}
 
 										newtouches[id] |= getButtonValue(iv.getValue(), true);
 

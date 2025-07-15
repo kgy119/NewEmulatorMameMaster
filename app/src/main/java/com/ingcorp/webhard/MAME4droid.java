@@ -68,6 +68,7 @@ import com.ingcorp.webhard.helpers.ScraperHelper;
 import com.ingcorp.webhard.input.ControlCustomizer;
 import com.ingcorp.webhard.input.GameController;
 import com.ingcorp.webhard.input.InputHandler;
+import com.ingcorp.webhard.manager.AdMobManager;
 import com.ingcorp.webhard.views.IEmuView;
 import com.ingcorp.webhard.views.InputView;
 import com.ingcorp.webhard.R;
@@ -160,6 +161,8 @@ public class MAME4droid extends Activity {
 		}
 
 		initMame4droid();
+
+		AdMobManager.getInstance(this).loadRewardedAd(null);
 	}
 
 	protected void initMame4droid() {

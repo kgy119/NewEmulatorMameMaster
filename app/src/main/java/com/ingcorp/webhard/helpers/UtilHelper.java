@@ -33,6 +33,7 @@ public class UtilHelper {
     private static final String AD_NATIVE_CNT_KEY = "ad_native_cnt";
     private static final String KEY_GAME_LIST_VERSION = "game_list_version";
     private static final String BTN_COIN_CLICK_COUNT_KEY = "btn_coin_click_count";
+    private static final String AD_IN_PROGRESS_KEY = "ad_in_progress";
 
 
     private Context context;
@@ -970,4 +971,53 @@ public class UtilHelper {
             Log.e(TAG, "ROMs 디렉토리 상태 확인 중 오류", e);
         }
     }
+
+    /**
+     * BTN_COIN 클릭 수 증가 및 리워드 광고 노출 순서인지 체크
+     */
+
+
+    // 기존 shouldShowRewardAd() 메서드를 수정
+    public boolean shouldShowRewardAd() {
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+
+        // 현재 광고 진행 중인지 확인
+        if (prefs.getBoolean(AD_IN_PROGRESS_KEY, false)) {
+            return false; // 이미 광고 진행 중이면 false 반환
+        }
+
+        // 현재 BTN_COIN 클릭 수 가져오기
+        int currentClickCount = prefs.getInt(BTN_COIN_CLICK_COUNT_KEY, 0);
+
+        // 리워드 광고 주기 가져오기
+        int adRewardCoinCnt = getAdFullCoinCount();
+
+        // 주기로 나누어서 나머지가 0인지 확인 (광고 노출 순서인지)
+        return ((currentClickCount + 1) % adRewardCoinCnt) == 0;
+    }
+
+    // 광고 진행 상태 설정 메서드 추가
+    public void setAdInProgress(boolean inProgress) {
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        prefs.edit().putBoolean(AD_IN_PROGRESS_KEY, inProgress).apply();
+    }
+
+    // 광고 시청 완료 후 클릭 수 증가 메서드 추가
+    public void completeRewardAd() {
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+
+        // 클릭 수 증가
+        int currentClickCount = prefs.getInt(BTN_COIN_CLICK_COUNT_KEY, 0);
+        prefs.edit().putInt(BTN_COIN_CLICK_COUNT_KEY, currentClickCount + 1).apply();
+
+        // 광고 진행 상태 해제
+        setAdInProgress(false);
+    }
+
+    // 광고 실패/취소 시 호출할 메서드 추가
+    public void cancelRewardAd() {
+        // 클릭 수는 증가시키지 않고 진행 상태만 해제
+        setAdInProgress(false);
+    }
+
 }

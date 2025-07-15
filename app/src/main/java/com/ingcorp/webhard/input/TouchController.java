@@ -765,12 +765,20 @@ public class TouchController implements IController {
 		//vibrator.vibrate(VibrationEffect.createOneShot(1L, 180));
 	}
 
+	// TouchController.java의 showRewardAd 메서드 수정
+
+	// TouchController.java의 showRewardAd 메서드 - 간단한 버전
+
 	private void showRewardAd() {
 		if (mm == null) return;
 
 		mm.runOnUiThread(() -> {
 			AdMobManager adMobManager = AdMobManager.getInstance(mm);
 
+			// 광고 표시 전 현재 화면 방향 확인 및 필요시 재로드
+			adMobManager.checkOrientationAndReloadAd(mm);
+
+			// 광고 상태 확인 후 표시
 			if (adMobManager.isRewardedAdReady()) {
 				// 리워드 광고 표시
 				adMobManager.showRewardedAd(mm, new AdMobManager.OnRewardedAdShownListener() {
@@ -789,6 +797,8 @@ public class TouchController implements IController {
 					public void onAdShowFailed(String error) {
 						Log.e(Constants.LOG_TAG, "리워드 광고 표시 실패: " + error);
 						UtilHelper.getInstance(mm).cancelRewardAd();
+						// 광고 실패 시 일반 코인 증가로 대체
+						handleNormalCoinIncrease();
 					}
 
 					@Override

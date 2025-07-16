@@ -68,6 +68,7 @@ import com.ingcorp.webhard.helpers.ScraperHelper;
 import com.ingcorp.webhard.input.ControlCustomizer;
 import com.ingcorp.webhard.input.GameController;
 import com.ingcorp.webhard.input.InputHandler;
+import com.ingcorp.webhard.manager.AdMobManager;
 import com.ingcorp.webhard.views.IEmuView;
 import com.ingcorp.webhard.views.InputView;
 import com.ingcorp.webhard.R;
@@ -160,6 +161,8 @@ public class MAME4droid extends Activity {
 		}
 
 		initMame4droid();
+
+		AdMobManager.getInstance(this).loadRewardedAd(null);
 	}
 
 	protected void initMame4droid() {
@@ -175,8 +178,16 @@ public class MAME4droid extends Activity {
 						}});
 						t.start();
 					}
-					else
-					   showDialog(DialogHelper.DIALOG_ROMs);
+					else{
+						getMainHelper().setInstallationDirType(MainHelper.INSTALLATION_DIR_FILES_DIR);
+						getPrefsHelper().setROMsDIR("");
+						getPrefsHelper().setSAF_Uri(null);
+
+						Thread t = new Thread(new Runnable() { public void run() {
+							runMAME4droid();
+						}});
+						t.start();
+					}
 				}
 			} else { //roms dir no es null es que previamente hemos puesto "" o un path especifico. Venimos del recreate y si ha cambiado el installation path hay que actuzalizarlo
 
@@ -247,11 +258,11 @@ public class MAME4droid extends Activity {
 			frame.setOnApplyWindowInsetsListener(new View.OnApplyWindowInsetsListener() {
 				@Override
 				public WindowInsets onApplyWindowInsets(View v, WindowInsets insets) {
-					 Insets bars = insets.getInsets(WindowInsets.Type.displayCutout()
+					Insets bars = insets.getInsets(WindowInsets.Type.displayCutout()
 
-					/*	 | WindowInsets.Type.systemBars() */
+							/*	 | WindowInsets.Type.systemBars() */
 
-					 );
+					);
 					v.setPadding(bars.left, bars.top, bars.right, bars.bottom);
 					return WindowInsets.CONSUMED;
 				}
@@ -281,6 +292,12 @@ public class MAME4droid extends Activity {
 		inflateViews();
 
 		getMainHelper().updateMAME4droid();
+
+		AdMobManager adMobManager = AdMobManager.getInstance(this);
+		if (adMobManager != null) {
+			Log.d("EMULATOR", "화면 회전으로 인한 AdMob 광고 재로드 요청");
+			adMobManager.checkOrientationAndReloadAd(this);
+		}
 
 		overridePendingTransition(0, 0);
 	}

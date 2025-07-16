@@ -305,9 +305,7 @@ public class MainHelper {
 
     public void copyFiles() {
 
-		WarnWidget pw = null;
-
-		try {
+        try {
 
             String roms_dir = mm.getMainHelper().getInstallationDIR();
 
@@ -318,9 +316,6 @@ public class MainHelper {
 
             fm.mkdirs();
             fm.createNewFile();
-
-			pw = new WarnWidget(mm,"Installing files, ","please wait...", Color.WHITE,false,true);
-			pw.init();
 
             // Create a ZipInputStream to read the zip file
             BufferedOutputStream dest = null;
@@ -341,8 +336,6 @@ public class MainHelper {
                         throw new SecurityException("Error zip!!!!");
                     }
 
-					pw.notifyText("Installing: "+f.getName());
-
                     String destination = zip_dir;
                     String destFN = destination + File.separator + entry.getName();
                     // Write the file to the file system
@@ -362,53 +355,34 @@ public class MainHelper {
             }
             zis.close();
 
-			File f1 = new File(zip_dir, "ui.ini");
-			if(!f1.exists())
-			{
-				File f2 = new File(zip_dir, "ui.ini.bak");
-				f2.renameTo(f1);
-			}
-
-			pw.end();
-			pw=null;
+            File f1 = new File(zip_dir, "ui.ini");
+            if(!f1.exists())
+            {
+                File f2 = new File(zip_dir, "ui.ini.bak");
+                f2.renameTo(f1);
+            }
 
             String dir = this.getInstallationDIR();
             if (!dir.endsWith("/")) dir += "/";
             String rompath = mm.getPrefsHelper().getROMsDIR() != null && mm.getPrefsHelper().getROMsDIR() != "" ? mm
                     .getPrefsHelper().getROMsDIR() : dir + "roms";
-            String msg =
-                    "Created or updated: '"
-                            + dir
-                            + "' to store save states, cfg files and MAME assets.\n\nNote, copy or move your zipped ROMs under '"
-                            + rompath
-                            + "' directory!\n\nIMPORTANT: MAME4droid (Current) uses only "+ mm.getString(R.string.mame_version) +" MAME romset, not 0.139.";
 
-			if(mm.getMainHelper().getDeviceDetected() == MainHelper.DEVICE_METAQUEST){
-				msg = "Welcome to MAME4droid for META Quest!\n\nYou should pair an XBOX One controller on your META Quest to be able to play games but you can play lightgun games with your touch controllers.\n\n"+msg;
-			}
-
-            //if (mm.getPrefsHelper().getSAF_Uri()!=null)
-                //msg += "\n\nTIP: You can enable a setting to store save states under roms folder, so they will not be deleted when uninstalling MAME4droid. Look at MAME4droid option in settings.";
-            mm.getDialogHelper().setInfoMsg(msg);
-
-			mm.runOnUiThread(new Runnable() {
-				public void run() {
-					try {
-						Thread.sleep(1000);
-					} catch (InterruptedException e) {
-
-					}
-					mm.showDialog(DialogHelper.DIALOG_INFO);
-				}
-			});
-            //mm.showDialog(DialogHelper.DIALOG_INFO);
+            // UI 스레드 대기 시간 단축 또는 제거 (선택적)
+            mm.runOnUiThread(new Runnable() {
+                public void run() {
+                    try {
+                        Thread.sleep(100); // 대기 시간 단축 (1000ms -> 100ms)
+                    } catch (InterruptedException e) {
+                        // 무시
+                    }
+                }
+            });
 
         } catch (Exception e) {
             e.printStackTrace();
-			if(pw!=null)
-				pw.end();
         }
     }
+
 
     public int getscrOrientation() {
         Display getOrient = mm.getWindowManager().getDefaultDisplay();

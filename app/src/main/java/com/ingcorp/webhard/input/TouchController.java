@@ -49,12 +49,18 @@ import android.content.res.Configuration;
 import android.graphics.Rect;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
+import android.util.Log;
 import android.view.MotionEvent;
 
 import com.ingcorp.webhard.Emulator;
 import com.ingcorp.webhard.MAME4droid;
+import com.ingcorp.webhard.R;
+import com.ingcorp.webhard.SplashActivity;
+import com.ingcorp.webhard.base.Constants;
 import com.ingcorp.webhard.helpers.DialogHelper;
 import com.ingcorp.webhard.helpers.PrefsHelper;
+import com.ingcorp.webhard.helpers.UtilHelper;
+import com.ingcorp.webhard.manager.AdMobManager;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -125,16 +131,16 @@ public class TouchController implements IController {
 			btnStates[i] = old_btnStates[i] = BTN_NO_PRESS_STATE;
 	}
 
-    public void setMAME4droid(MAME4droid value) {
-        mm = value;
-        if (mm == null) return;
+	public void setMAME4droid(MAME4droid value) {
+		mm = value;
+		if (mm == null) return;
 
 		if (mm.getMainHelper().getscrOrientation() == Configuration.ORIENTATION_LANDSCAPE) {
 			state = mm.getPrefsHelper().isLandscapeTouchController() ? STATE_SHOWING_CONTROLLER : STATE_SHOWING_NONE;
 		} else {
 			state = mm.getPrefsHelper().isPortraitTouchController() ? STATE_SHOWING_CONTROLLER : STATE_SHOWING_NONE;
 		}
-    }
+	}
 
 	public void changeState() {
 		if (state == STATE_SHOWING_CONTROLLER) {
@@ -288,10 +294,46 @@ public class TouchController implements IController {
 			}
 
 			if (actionEvent == MotionEvent.ACTION_UP
-				|| (actionEvent == MotionEvent.ACTION_POINTER_UP && actionPointerId == pid)
-				|| actionEvent == MotionEvent.ACTION_CANCEL) {
-				//nada
-			} else {
+					|| (actionEvent == MotionEvent.ACTION_POINTER_UP && actionPointerId == pid)
+					|| actionEvent == MotionEvent.ACTION_CANCEL) {
+
+				for (int j = 0; j < values.size(); j++) {
+					InputValue iv = values.get(j);
+
+					if (iv.getRect().contains(x, y) && isHandledTouchItem(iv) &&
+							iv.getType() == TYPE_BUTTON_RECT && iv.getValue() == BTN_COIN) {
+
+						UtilHelper utilHelper = UtilHelper.getInstance(mm);
+
+						// 인터넷 연결 확인 후 없으면 경고창
+						if (!utilHelper.isNetworkConnected()) {
+							Log.w("TouchController", "인터넷 연결이 없어 코인 처리 중단");
+
+							// 게임용 네트워크 에러 다이얼로그 표시 (앱 종료하지 않음)
+							utilHelper.showGameNetworkErrorDialog(mm);
+
+							// 인터넷 연결이 없으면 여기서 중단 - 코인 증가나 광고 처리 없음
+							break;
+						}
+
+						mm.getInputView().updateCoinImages();
+
+						if (utilHelper.shouldShowRewardAd()) {
+							// 광고 진행 상태 설정
+							utilHelper.setAdInProgress(true);
+							// 리워드 광고 표시
+							showRewardAd();
+						} else {
+							// 아니면 기존 로직대로 게임내 coin 수 증가
+							handleNormalCoinIncrease();
+							// 일반 클릭 수 증가
+							utilHelper.completeRewardAd();
+						}
+						break;
+					}
+				}
+
+		} else {
 				//int id = i;
 				int id = actionPointerId;
 				if (id > touchstates.length)
@@ -317,8 +359,8 @@ public class TouchController implements IController {
 									if (iv.getType() == TYPE_BUTTON_RECT) {
 
 										if ((iv.getValue() == BTN_START || iv.getValue() == BTN_EXIT) && stick_state != STICK_NONE &&
-											mm.getMainHelper().getscrOrientation() == Configuration.ORIENTATION_PORTRAIT &&
-											!mm.getInputHandler().getTiltSensor().isEnabled()
+												mm.getMainHelper().getscrOrientation() == Configuration.ORIENTATION_PORTRAIT &&
+												!mm.getInputHandler().getTiltSensor().isEnabled()
 										)
 											continue;//prevent touches with stick over buttons
 
@@ -336,9 +378,9 @@ public class TouchController implements IController {
 											mm.showDialog(DialogHelper.DIALOG_OPTIONS);
 										}
 									} else if (mm.getPrefsHelper().getControllerType() == PrefsHelper.PREF_DIGITAL_DPAD
-										&& !((mm.getInputHandler().getTiltSensor().isEnabled() ||
-										(mm.getPrefsHelper().isTouchLightgun() &&  !(mm.getMainHelper().getscrOrientation() == Configuration.ORIENTATION_PORTRAIT && !mm.getPrefsHelper().isPortraitFullscreen())))
-										&& Emulator.isInGameButNotInMenu())) {
+											&& !((mm.getInputHandler().getTiltSensor().isEnabled() ||
+											(mm.getPrefsHelper().isTouchLightgun() &&  !(mm.getMainHelper().getscrOrientation() == Configuration.ORIENTATION_PORTRAIT && !mm.getPrefsHelper().isPortraitFullscreen())))
+											&& Emulator.isInGameButNotInMenu())) {
 										newtouches[id] = getStickValue(iv.getValue());
 									}
 
@@ -438,7 +480,7 @@ public class TouchController implements IController {
 			} else if (iv.getType() == TYPE_ANALOG_RECT && pH.getControllerType() != PrefsHelper.PREF_DIGITAL_DPAD) {
 				if (stick_state != old_stick_state) {
 					if (pH.isAnimatedInput() && (pH.getControllerType() == PrefsHelper.PREF_DIGITAL_STICK ||
-						(mm.getPrefsHelper().getControllerType() == PrefsHelper.PREF_ANALOG_STICK && mm.getInputHandler().getTiltSensor().isEnabled()))) {
+							(mm.getPrefsHelper().getControllerType() == PrefsHelper.PREF_ANALOG_STICK && mm.getInputHandler().getTiltSensor().isEnabled()))) {
 						if (pH.isDebugEnabled())
 							mm.getInputView().invalidate();
 						else
@@ -468,17 +510,17 @@ public class TouchController implements IController {
 
 	public Boolean isHandledStick(){
 		boolean hideStick = (mm.getMainHelper().getscrOrientation() == Configuration.ORIENTATION_LANDSCAPE ||
-			mm.getMainHelper().getscrOrientation() == Configuration.ORIENTATION_PORTRAIT && Emulator.isPortraitFull())
-			&&
-			(mm.getPrefsHelper().isHideStick()
-				|| mm.getInputHandler().isHideTouchController()
-				|| (mm.getPrefsHelper().isTouchLightgun() && !Emulator.isInMenu())
-				|| (mm.getPrefsHelper().isTouchGameMouse() && !Emulator.isInMenu())
-			)
-			&& !ControlCustomizer.isEnabled() ;
+				mm.getMainHelper().getscrOrientation() == Configuration.ORIENTATION_PORTRAIT && Emulator.isPortraitFull())
+				&&
+				(mm.getPrefsHelper().isHideStick()
+						|| mm.getInputHandler().isHideTouchController()
+						|| (mm.getPrefsHelper().isTouchLightgun() && !Emulator.isInMenu())
+						|| (mm.getPrefsHelper().isTouchGameMouse() && !Emulator.isInMenu())
+				)
+				&& !ControlCustomizer.isEnabled() ;
 
 		//if(hideStick)
-		   //mm.getInputHandler().getTouchStick().reset();
+		//mm.getInputHandler().getTouchStick().reset();
 
 		if(mm.getInputHandler().getTouchStick().getMotionPid()!=-1)hideStick=false;
 
@@ -502,25 +544,25 @@ public class TouchController implements IController {
 		else if(type == TouchController.TYPE_BUTTON_IMG || type  == TouchController.TYPE_BUTTON_RECT ){
 
 			if(mm.getMainHelper().getscrOrientation() == Configuration.ORIENTATION_PORTRAIT && !Emulator.isPortraitFull()
-				|| ControlCustomizer.isEnabled())
+					|| ControlCustomizer.isEnabled())
 			{
 				handle = true;
 			}
 			else {
 
 				if(mm.getPrefsHelper().isDisabledAllButtonsInFronted() &&
-					mm.getInputHandler().getGameController().isEnabled() && !Emulator.isInGame() )
+						mm.getInputHandler().getGameController().isEnabled() && !Emulator.isInGame() )
 					return false;
 
 				if(mm.getPrefsHelper().isDisabledAllButtonsInGame() &&
-					mm.getInputHandler().getGameController().isEnabled() && Emulator.isInGame() )
+						mm.getInputHandler().getGameController().isEnabled() && Emulator.isInGame() )
 					return false;
 
 				handle = true;
 				int n;
 				if (mm.getInputHandler().isHideTouchController() ||
-					(mm.getPrefsHelper().isTouchLightgun() && !Emulator.isInMenu()) ||
-					( mm.getPrefsHelper().isTouchGameMouse()  && !Emulator.isInMenu())
+						(mm.getPrefsHelper().isTouchLightgun() && !Emulator.isInMenu()) ||
+						( mm.getPrefsHelper().isTouchGameMouse()  && !Emulator.isInMenu())
 				) {
 					n = 0;
 				} else if (Emulator.isSaveorload()) {
@@ -630,7 +672,7 @@ public class TouchController implements IController {
 
 			InputValue iv = values.get(j);
 			if (iv.getType() == TYPE_BUTTON_IMG
-				|| iv.getType() == TYPE_BUTTON_RECT) {
+					|| iv.getType() == TYPE_BUTTON_RECT) {
 				if (iv.getValue() != BTN_EXIT && iv.getValue() != BTN_OPTION && iv.getValue() != BTN_START && iv.getValue() != BTN_COIN)
 					iv.setSize(0, 0, sz, sz);
 			} else if (iv.getType() == TYPE_STICK_IMG) {
@@ -734,4 +776,78 @@ public class TouchController implements IController {
 		//vibrator.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_TICK));
 		//vibrator.vibrate(VibrationEffect.createOneShot(1L, 180));
 	}
+
+	// TouchController.java의 showRewardAd 메서드 수정
+
+	// TouchController.java의 showRewardAd 메서드 - 간단한 버전
+
+	private void showRewardAd() {
+		if (mm == null) return;
+
+		mm.runOnUiThread(() -> {
+			AdMobManager adMobManager = AdMobManager.getInstance(mm);
+
+			// 광고 표시 전 현재 화면 방향 확인 및 필요시 재로드
+			adMobManager.checkOrientationAndReloadAd(mm);
+
+			// 광고 상태 확인 후 표시
+			if (adMobManager.isRewardedAdReady()) {
+				// 리워드 광고 표시
+				adMobManager.showRewardedAd(mm, new AdMobManager.OnRewardedAdShownListener() {
+					@Override
+					public void onAdShown() {
+						Log.d(Constants.LOG_TAG, "리워드 광고 표시됨");
+					}
+
+					@Override
+					public void onAdClosed() {
+						Log.d(Constants.LOG_TAG, "리워드 광고 닫힘 - 보상 없음");
+						UtilHelper.getInstance(mm).cancelRewardAd();
+					}
+
+					@Override
+					public void onAdShowFailed(String error) {
+						Log.e(Constants.LOG_TAG, "리워드 광고 표시 실패: " + error);
+						UtilHelper.getInstance(mm).cancelRewardAd();
+						// 광고 실패 시 일반 코인 증가로 대체
+						handleNormalCoinIncrease();
+					}
+
+					@Override
+					public void onAdNotReady() {
+						Log.w(Constants.LOG_TAG, "리워드 광고가 준비되지 않음");
+						UtilHelper.getInstance(mm).cancelRewardAd();
+						// 일반 코인 증가로 대체
+						handleNormalCoinIncrease();
+					}
+
+					@Override
+					public void onRewardEarned(int amount, String type) {
+						Log.d(Constants.LOG_TAG, "리워드 획득: " + amount + " " + type);
+						// 코인 증가 및 클릭 수 증가
+						handleRewardCoinIncrease();
+						UtilHelper.getInstance(mm).completeRewardAd();
+					}
+				});
+			} else {
+				// 광고가 준비되지 않았으면 일반 코인 증가
+				Log.w(Constants.LOG_TAG, "리워드 광고가 준비되지 않아 일반 코인 증가");
+				UtilHelper.getInstance(mm).cancelRewardAd();
+				handleNormalCoinIncrease();
+			}
+		});
+	}
+
+	// 일반 코인 증가 처리 메서드 추가
+	private void handleNormalCoinIncrease() {
+		// 기존 코인 증가 로직 구현
+		// 예: Emulator.setValue(Emulator.COIN_VALUE, currentCoins + 1);
+	}
+
+	// 리워드 코인 증가 처리 메서드 추가
+	private void handleRewardCoinIncrease() {
+		// 리워드 코인 증가 로직 구현 (일반보다 더 많은 코인)
+		// 예: Emulator.setValue(Emulator.COIN_VALUE, currentCoins + 5);
+	}
+
 }

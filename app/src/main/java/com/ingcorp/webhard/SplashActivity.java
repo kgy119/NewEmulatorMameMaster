@@ -245,7 +245,7 @@ public class SplashActivity extends Activity {
                     ", Current version: " + gameListManager.getCurrentGameListVersion());
             updateGameList(serverGameListVersion);
         } else {
-            Log.d(TAG, "Game list is up to date. Version: " + serverGameListVersion);
+            Log.d(TAG, "No need to update game list. Version: " + serverGameListVersion);
             onGameListUpdateCompleted();
         }
         onVersionCheckCompleted();

@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "764438510330",
+    "project_id": "masteroldgame",
+    "storage_bucket": "masteroldgame.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:764438510330:android:68e06b0e214e22f785e743",
+        "android_client_info": {
+          "package_name": "com.ingcorp.webhard"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "764438510330-f59e9p17026es7ol6rr5l7fa48b8n0ua.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC5F6efPBGzvtuk46iT2C5J-omLzn4j6lo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "764438510330-f59e9p17026es7ol6rr5l7fa48b8n0ua.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

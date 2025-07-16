@@ -508,11 +508,11 @@ public class UtilHelper {
     */
     public void cleanupAllTemporaryFiles(String romsPath) {
         try {
-            Log.d(TAG, "임시 파일 정리 시작: " + romsPath);
+//            Log.d(TAG, "임시 파일 정리 시작: " + romsPath);
 
             File romsDir = new File(romsPath);
             if (!romsDir.exists() || !romsDir.isDirectory()) {
-                Log.w(TAG, "ROMs 디렉토리가 존재하지 않음: " + romsPath);
+//                Log.w(TAG, "ROMs 디렉토리가 존재하지 않음: " + romsPath);
                 return;
             }
 
@@ -522,7 +522,7 @@ public class UtilHelper {
             // .backup 파일들 정리 (오래된 백업 파일들)
             cleanupFilesByExtension(romsDir, BACKUP_FILE_EXTENSION, "백업");
 
-            Log.d(TAG, "임시 파일 정리 완료");
+//            Log.d(TAG, "임시 파일 정리 완료");
 
         } catch (Exception e) {
             Log.e(TAG, "임시 파일 정리 중 오류 발생", e);

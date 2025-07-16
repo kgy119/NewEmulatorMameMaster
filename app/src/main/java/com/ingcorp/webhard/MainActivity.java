@@ -2,6 +2,7 @@ package com.ingcorp.webhard;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -15,6 +16,10 @@ import androidx.fragment.app.FragmentActivity;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.google.android.gms.ads.AdView;
+import com.google.android.gms.tasks.Task;
+import com.google.android.play.core.review.ReviewInfo;
+import com.google.android.play.core.review.ReviewManager;
+import com.google.android.play.core.review.ReviewManagerFactory;
 import com.ingcorp.webhard.adapter.GamePagerAdapter;
 import com.ingcorp.webhard.base.Constants;
 import com.ingcorp.webhard.fragment.GameFragment;
@@ -39,6 +44,15 @@ public class MainActivity extends FragmentActivity {
     private AdMobManager adMobManager;
     private FrameLayout adContainerView;
     private UtilHelper utilHelper;
+    private ReviewManager reviewManager;
+    private static final String REVIEW_PREF_KEY = "app_review_requested";
+
+    private static final String NOTIFICATION_PERMISSION_KEY = "notification_permission_requested";
+    private static final String LAST_NOTIFICATION_REQUEST_KEY = "last_notification_request_time";
+    private static final long NOTIFICATION_REQUEST_INTERVAL = 17 * 24 * 60 * 60 * 1000L; // 17일 (밀리초)
+    private static final int NOTIFICATION_PERMISSION_REQUEST_CODE = 1001;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,6 +73,7 @@ public class MainActivity extends FragmentActivity {
         // 다른 매니저들 초기화
         adMobManager = AdMobManager.getInstance(this);
         utilHelper = UtilHelper.getInstance(this);
+        reviewManager = ReviewManagerFactory.create(this);
 
         // UI 컴포넌트 초기화
         initViews();
@@ -69,6 +84,14 @@ public class MainActivity extends FragmentActivity {
         loadCollapsibleBannerIfEnabled();
         loadInterstitialAd();
         initializeAndCleanup();
+
+        // 알림 권한 요청만 먼저 실행
+//        if (BuildConfig.DEBUG) {
+//            resetReviewRequestState();
+//            resetNotificationRequestState();
+//        }
+
+        checkAndRequestNotificationPermission();
     }
 
     /**
@@ -336,6 +359,244 @@ public class MainActivity extends FragmentActivity {
                 }
             });
         }
+    }
+
+    /**
+     * 앱 설치 후 첫 실행시에만 리뷰를 요청하는 메서드
+     */
+    private void requestAppReviewIfFirstTime() {
+        SharedPreferences prefs = getSharedPreferences("WebHardPrefs", Context.MODE_PRIVATE);
+        boolean reviewRequested = prefs.getBoolean(REVIEW_PREF_KEY, false);
+
+        if (!reviewRequested) {
+            Log.d(Constants.LOG_TAG, "첫 실행 - 앱 리뷰 요청 시작");
+
+            // 리뷰 요청 상태를 즉시 true로 설정 (중복 방지)
+            SharedPreferences.Editor editor = prefs.edit();
+            editor.putBoolean(REVIEW_PREF_KEY, true);
+            editor.apply();
+
+            showInAppReview();
+        } else {
+            Log.d(Constants.LOG_TAG, "이미 리뷰 요청됨 - 건너뜀");
+        }
+    }
+
+    /**
+     * Google Play In-App Review API를 사용하여 리뷰 요청
+     */
+    private void showInAppReview() {
+        if (reviewManager == null) {
+            Log.e(Constants.LOG_TAG, "ReviewManager가 null입니다");
+            return;
+        }
+
+        Task<ReviewInfo> request = reviewManager.requestReviewFlow();
+        request.addOnCompleteListener(task -> {
+            if (task.isSuccessful()) {
+                ReviewInfo reviewInfo = task.getResult();
+                Task<Void> flow = reviewManager.launchReviewFlow(this, reviewInfo);
+                flow.addOnCompleteListener(reviewTask -> {
+                    if (reviewTask.isSuccessful()) {
+                        Log.d(Constants.LOG_TAG, "리뷰 플로우 완료");
+                    } else {
+                        Log.e(Constants.LOG_TAG, "리뷰 플로우 실패", reviewTask.getException());
+                    }
+                });
+            } else {
+                Log.e(Constants.LOG_TAG, "리뷰 요청 실패", task.getException());
+                // 대체 방법: 플레이스토어로 직접 이동
+                showAlternativeReviewDialog();
+            }
+        });
+    }
+
+    /**
+     * In-App Review가 실패할 경우 대체 다이얼로그 표시
+     */
+    private void showAlternativeReviewDialog() {
+        new android.app.AlertDialog.Builder(this)
+                .setTitle("앱 평가")
+                .setMessage("앱이 마음에 드시나요? 플레이스토어에서 평가해주세요!")
+                .setPositiveButton("평가하기", (dialog, which) -> {
+                    openPlayStore();
+                })
+                .setNegativeButton("나중에", (dialog, which) -> {
+                    dialog.dismiss();
+                })
+                .setCancelable(true)
+                .show();
+    }
+
+    /**
+     * 플레이스토어 앱 페이지로 이동
+     */
+    private void openPlayStore() {
+        try {
+            String packageName = getPackageName();
+            android.content.Intent intent = new android.content.Intent(
+                    android.content.Intent.ACTION_VIEW,
+                    android.net.Uri.parse("market://details?id=" + packageName)
+            );
+            startActivity(intent);
+        } catch (android.content.ActivityNotFoundException e) {
+            // 플레이스토어 앱이 없는 경우 웹브라우저로 이동
+            String packageName = getPackageName();
+            android.content.Intent intent = new android.content.Intent(
+                    android.content.Intent.ACTION_VIEW,
+                    android.net.Uri.parse("https://play.google.com/store/apps/details?id=" + packageName)
+            );
+            startActivity(intent);
+        } catch (Exception e) {
+            Log.e(Constants.LOG_TAG, "플레이스토어 열기 실패", e);
+        }
+    }
+
+    /**
+     * 알림 권한 상태를 확인하고 필요시 요청하는 메서드
+     */
+    private void checkAndRequestNotificationPermission() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            if (!isNotificationPermissionGranted()) {
+                if (shouldRequestNotificationPermission()) {
+                    Log.d(Constants.LOG_TAG, "알림 권한 요청 시작");
+                    requestNotificationPermissionWithDelay();
+                } else {
+                    Log.d(Constants.LOG_TAG, "알림 권한 요청 주기가 아직 되지 않음");
+                    // 권한 요청을 안 하는 경우에도 앱 리뷰 체크
+                    requestAppReviewIfFirstTime();
+                }
+            } else {
+                Log.d(Constants.LOG_TAG, "알림 권한이 이미 허용됨");
+                // 이미 권한이 있는 경우에도 앱 리뷰 체크
+                requestAppReviewIfFirstTime();
+            }
+        } else {
+            Log.d(Constants.LOG_TAG, "Android 13 미만 - 알림 권한 확인 불필요");
+            // Android 13 미만에서는 바로 앱 리뷰 체크
+            requestAppReviewIfFirstTime();
+        }
+    }
+
+
+    /**
+     * 알림 권한이 허용되어 있는지 확인
+     */
+    private boolean isNotificationPermissionGranted() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            return androidx.core.content.ContextCompat.checkSelfPermission(
+                    this,
+                    android.Manifest.permission.POST_NOTIFICATIONS
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED;
+        }
+        return true; // Android 13 미만에서는 항상 true
+    }
+
+    /**
+     * 알림 권한을 요청해야 하는지 판단
+     */
+    private boolean shouldRequestNotificationPermission() {
+        SharedPreferences prefs = getSharedPreferences("WebHardPrefs", Context.MODE_PRIVATE);
+        long lastRequestTime = prefs.getLong(LAST_NOTIFICATION_REQUEST_KEY, 0);
+        long currentTime = System.currentTimeMillis();
+
+        // 첫 설치 시 (lastRequestTime == 0) 또는 지정된 간격이 지났으면 요청
+        return (lastRequestTime == 0) || (currentTime - lastRequestTime >= NOTIFICATION_REQUEST_INTERVAL);
+    }
+
+    /**
+     * 앱 설치 시간을 가져오는 메서드
+     */
+    private long getAppInstallTime() {
+        try {
+            android.content.pm.PackageManager pm = getPackageManager();
+            android.content.pm.PackageInfo packageInfo = pm.getPackageInfo(getPackageName(), 0);
+            return packageInfo.firstInstallTime;
+        } catch (android.content.pm.PackageManager.NameNotFoundException e) {
+            Log.e(Constants.LOG_TAG, "패키지 정보를 가져올 수 없음", e);
+            return System.currentTimeMillis(); // 현재 시간을 기본값으로 사용
+        }
+    }
+
+    /**
+     * 지연 후 알림 권한 요청
+     */
+    private void requestNotificationPermissionWithDelay() {
+        // 사용자 경험을 위해 5초 후에 요청
+        new android.os.Handler().postDelayed(() -> {
+            if (!isFinishing() && !isDestroyed()) {
+                requestNotificationPermission();
+            }
+        }, 2000);
+    }
+
+    /**
+     * 시스템 알림 권한 요청
+     */
+    private void requestNotificationPermission() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            androidx.core.app.ActivityCompat.requestPermissions(
+                    this,
+                    new String[]{android.Manifest.permission.POST_NOTIFICATIONS},
+                    NOTIFICATION_PERMISSION_REQUEST_CODE
+            );
+        }
+        updateLastNotificationRequestTime();
+    }
+
+    /**
+     * 마지막 알림 권한 요청 시간 업데이트
+     */
+    private void updateLastNotificationRequestTime() {
+        SharedPreferences prefs = getSharedPreferences("WebHardPrefs", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putLong(LAST_NOTIFICATION_REQUEST_KEY, System.currentTimeMillis());
+        editor.apply();
+        Log.d(Constants.LOG_TAG, "알림 권한 요청 시간 업데이트됨");
+    }
+
+    /**
+     * 권한 요청 결과 처리
+     */
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == NOTIFICATION_PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Log.d(Constants.LOG_TAG, "알림 권한 허용됨");
+            } else {
+                Log.d(Constants.LOG_TAG, "알림 권한 거부됨");
+            }
+
+            // 권한 요청 완료 후 앱 리뷰 요청 (첫 실행시에만)
+            requestAppReviewIfFirstTime();
+        }
+    }
+
+
+    /**
+     * 알림 권한 요청 상태를 재설정하는 메서드 (디버깅용)
+     * 실제 배포시에는 제거하거나 주석처리
+     */
+    private void resetNotificationRequestState() {
+        SharedPreferences prefs = getSharedPreferences("WebHardPrefs", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putLong(LAST_NOTIFICATION_REQUEST_KEY, 0);
+        editor.apply();
+        Log.d(Constants.LOG_TAG, "알림 권한 요청 상태 재설정됨");
+    }
+
+    /**
+     * 리뷰 요청 상태를 재설정하는 메서드 (디버깅용)
+     * 실제 배포시에는 제거하거나 주석처리
+     */
+    private void resetReviewRequestState() {
+        SharedPreferences prefs = getSharedPreferences("WebHardPrefs", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putBoolean(REVIEW_PREF_KEY, false);
+        editor.apply();
+        Log.d(Constants.LOG_TAG, "리뷰 요청 상태 재설정됨");
     }
 
     @Override

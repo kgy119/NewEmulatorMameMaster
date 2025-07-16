@@ -10,15 +10,12 @@ import android.os.Build;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.WindowManager;
-import android.widget.Toast;
+
 import com.ingcorp.webhard.BuildConfig;
 import com.ingcorp.webhard.R;
 import com.ingcorp.webhard.base.Constants;
 
 import java.io.File;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
 
 public class UtilHelper {
 
@@ -40,9 +37,6 @@ public class UtilHelper {
     private static UtilHelper instance;
     private static final String TEMP_FILE_EXTENSION = ".tmp";
     private static final String BACKUP_FILE_EXTENSION = ".backup";
-
-
-    private android.app.ProgressDialog progressDialog;
 
 
     // 싱글톤 패턴 적용
@@ -448,33 +442,6 @@ public class UtilHelper {
         Log.d(TAG, "게임 클릭 수 초기화됨");
     }
 
-    /**
-     * BTN_COIN 클릭 수 가져오기
-     */
-    public int getBtnCoinClickCount() {
-        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-        return prefs.getInt(BTN_COIN_CLICK_COUNT_KEY, 0);
-    }
-
-    /**
-     * BTN_COIN 클릭 수 초기화 (디버그용)
-     */
-    public void resetBtnCoinClickCount() {
-        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-        prefs.edit().putInt(BTN_COIN_CLICK_COUNT_KEY, 0).apply();
-        Log.d(TAG, "BTN_COIN 클릭 수 초기화됨");
-    }
-
-    /**
-     * BTN_COIN 및 광고 설정 정보 로깅 (디버그용)
-     */
-    public void logCoinAdSettings() {
-        Log.d(TAG, "=== BTN_COIN 및 광고 설정 정보 ===");
-        Log.d(TAG, "보상형 광고 코인 주기: " + getAdFullCoinCount());
-        Log.d(TAG, "현재 BTN_COIN 클릭 수: " + getBtnCoinClickCount());
-        Log.d(TAG, "===========================");
-    }
-
     // 광고 설정 정보 로깅 (디버그용)
     public void logAdSettings() {
         Log.d(TAG, "=== 광고 설정 정보 ===");
@@ -495,16 +462,6 @@ public class UtilHelper {
         return prefs.getString(key, defaultValue);
     }
 
-    public void saveBooleanPreference(String key, boolean value) {
-        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-        prefs.edit().putBoolean(key, value).apply();
-    }
-
-    public boolean getBooleanPreference(String key, boolean defaultValue) {
-        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-        return prefs.getBoolean(key, defaultValue);
-    }
-
     public void saveIntPreference(String key, int value) {
         SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         prefs.edit().putInt(key, value).apply();
@@ -513,37 +470,6 @@ public class UtilHelper {
     public int getIntPreference(String key, int defaultValue) {
         SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         return prefs.getInt(key, defaultValue);
-    }
-
-    // 토스트 메시지 표시
-    public void showToast(String message) {
-        Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
-    }
-
-    public void showLongToast(String message) {
-        Toast.makeText(context, message, Toast.LENGTH_LONG).show();
-    }
-
-    // 현재 날짜/시간 포맷팅
-    public String getCurrentDateTime() {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
-        return sdf.format(new Date());
-    }
-
-    public String getCurrentDate() {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-        return sdf.format(new Date());
-    }
-
-    public String getCurrentTime() {
-        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
-        return sdf.format(new Date());
-    }
-
-    // 날짜 포맷팅
-    public String formatDate(Date date, String pattern) {
-        SimpleDateFormat sdf = new SimpleDateFormat(pattern, Locale.getDefault());
-        return sdf.format(date);
     }
 
     // 문자열 유틸리티 메서드들
@@ -555,26 +481,8 @@ public class UtilHelper {
         return !isStringEmpty(str);
     }
 
-    public String trimString(String str) {
-        return str != null ? str.trim() : "";
-    }
-
-    // 화면 크기 관련 메서드들
-    public int getScreenWidth() {
-        return getDisplayMetrics().widthPixels;
-    }
-
-    public int getScreenHeight() {
-        return getDisplayMetrics().heightPixels;
-    }
-
     public float getScreenDensity() {
         return getDisplayMetrics().density;
-    }
-
-    // dp를 px로 변환
-    public int dpToPx(int dp) {
-        return Math.round(dp * getScreenDensity());
     }
 
     // px를 dp로 변환
@@ -582,67 +490,9 @@ public class UtilHelper {
         return Math.round(px / getScreenDensity());
     }
 
-    // 앱 버전 정보
-    public String getAppVersionName() {
-        try {
-            return context.getPackageManager().getPackageInfo(context.getPackageName(), 0).versionName;
-        } catch (Exception e) {
-            Log.e(TAG, "앱 버전 정보를 가져올 수 없습니다.", e);
-            return "Unknown";
-        }
-    }
-
-    public int getAppVersionCode() {
-        try {
-            return context.getPackageManager().getPackageInfo(context.getPackageName(), 0).versionCode;
-        } catch (Exception e) {
-            Log.e(TAG, "앱 버전 코드를 가져올 수 없습니다.", e);
-            return -1;
-        }
-    }
-
     // 디버그 모드 확인
     public boolean isDebugMode() {
         return BuildConfig.DEBUG;
-    }
-
-    // 로그 메서드들
-    public void logDebug(String message) {
-        if (isDebugMode()) {
-            Log.d(TAG, message);
-        }
-    }
-
-    public void logInfo(String message) {
-        Log.i(TAG, message);
-    }
-
-    public void logWarning(String message) {
-        Log.w(TAG, message);
-    }
-
-    public void logError(String message) {
-        Log.e(TAG, message);
-    }
-
-    public void logError(String message, Throwable throwable) {
-        Log.e(TAG, message, throwable);
-    }
-
-    // 메모리 사용량 확인
-    public void logMemoryUsage() {
-        Runtime runtime = Runtime.getRuntime();
-        long totalMemory = runtime.totalMemory();
-        long freeMemory = runtime.freeMemory();
-        long usedMemory = totalMemory - freeMemory;
-        long maxMemory = runtime.maxMemory();
-
-        Log.d(TAG, "=== 메모리 사용량 ===");
-        Log.d(TAG, "총 메모리: " + formatBytes(totalMemory));
-        Log.d(TAG, "사용중 메모리: " + formatBytes(usedMemory));
-        Log.d(TAG, "여유 메모리: " + formatBytes(freeMemory));
-        Log.d(TAG, "최대 메모리: " + formatBytes(maxMemory));
-        Log.d(TAG, "===================");
     }
 
     // 바이트를 읽기 쉬운 형태로 변환
@@ -651,31 +501,6 @@ public class UtilHelper {
         if (bytes < 1024 * 1024) return String.format("%.1f KB", bytes / 1024.0);
         if (bytes < 1024 * 1024 * 1024) return String.format("%.1f MB", bytes / (1024.0 * 1024.0));
         return String.format("%.1f GB", bytes / (1024.0 * 1024.0 * 1024.0));
-    }
-
-    /**
-     * 앱 시작시 손상된 임시 파일들을 정리하는 메서드 (UtilHelper에 추가 권장)
-     */
-    public void cleanupTemporaryFiles(String romsPath) {
-        try {
-            File romsDir = new File(romsPath);
-            if (!romsDir.exists() || !romsDir.isDirectory()) {
-                return;
-            }
-
-            File[] files = romsDir.listFiles((dir, name) -> name.endsWith(".tmp"));
-            if (files != null) {
-                for (File tempFile : files) {
-                    if (tempFile.delete()) {
-                        Log.d(Constants.LOG_TAG, "시작시 임시 파일 정리됨: " + tempFile.getName());
-                    } else {
-                        Log.w(Constants.LOG_TAG, "시작시 임시 파일 정리 실패: " + tempFile.getName());
-                    }
-                }
-            }
-        } catch (Exception e) {
-            Log.e(Constants.LOG_TAG, "임시 파일 정리 중 오류", e);
-        }
     }
 
     /**
@@ -729,91 +554,6 @@ public class UtilHelper {
             }
         } catch (Exception e) {
             Log.e(TAG, fileType + " 파일 정리 중 오류", e);
-        }
-    }
-
-    /**
-     * 특정 ROM 파일의 임시 파일이 존재하는지 확인
-     */
-    public boolean hasTemporaryFile(String romsPath, String romFileName) {
-        try {
-            File tempFile = new File(romsPath, romFileName + TEMP_FILE_EXTENSION);
-            return tempFile.exists();
-        } catch (Exception e) {
-            Log.e(TAG, "임시 파일 존재 확인 중 오류", e);
-            return false;
-        }
-    }
-
-    /**
-     * ROM 파일의 유효성을 검사하는 메서드
-     */
-    public boolean isRomFileValid(File romFile) {
-        try {
-            if (romFile == null) {
-                Log.w(TAG, "ROM 파일 객체가 null");
-                return false;
-            }
-
-            if (!romFile.exists()) {
-                Log.d(TAG, "ROM 파일이 존재하지 않음: " + romFile.getAbsolutePath());
-                return false;
-            }
-
-            if (!romFile.isFile()) {
-                Log.w(TAG, "ROM 경로가 파일이 아님: " + romFile.getAbsolutePath());
-                return false;
-            }
-
-            if (romFile.length() == 0) {
-                Log.w(TAG, "ROM 파일이 비어있음: " + romFile.getAbsolutePath());
-                return false;
-            }
-
-            if (!romFile.canRead()) {
-                Log.w(TAG, "ROM 파일을 읽을 수 없음: " + romFile.getAbsolutePath());
-                return false;
-            }
-
-            // 최소 파일 크기 검사 (1KB 미만은 유효하지 않다고 가정)
-            if (romFile.length() < 1024) {
-                Log.w(TAG, "ROM 파일이 너무 작음: " + romFile.length() + " bytes");
-                return false;
-            }
-
-            Log.d(TAG, "ROM 파일 유효성 검사 통과: " + romFile.getAbsolutePath() +
-                    " (크기: " + formatBytes(romFile.length()) + ")");
-            return true;
-
-        } catch (Exception e) {
-            Log.e(TAG, "ROM 파일 유효성 검사 중 오류", e);
-            return false;
-        }
-    }
-
-    /**
-     * 손상된 ROM 파일을 안전하게 삭제하는 메서드
-     */
-    public boolean deleteCorruptedRomFile(File romFile) {
-        try {
-            if (romFile == null || !romFile.exists()) {
-                return true; // 이미 없으므로 성공으로 간주
-            }
-
-            Log.w(TAG, "손상된 ROM 파일 삭제 시도: " + romFile.getAbsolutePath() +
-                    " (크기: " + romFile.length() + ")");
-
-            if (romFile.delete()) {
-                Log.d(TAG, "손상된 ROM 파일 삭제 성공");
-                return true;
-            } else {
-                Log.e(TAG, "손상된 ROM 파일 삭제 실패");
-                return false;
-            }
-
-        } catch (Exception e) {
-            Log.e(TAG, "손상된 ROM 파일 삭제 중 오류", e);
-            return false;
         }
     }
 
@@ -883,19 +623,6 @@ public class UtilHelper {
     }
 
     /**
-     * 다운로드 상태를 정리하는 메서드
-     */
-    public void clearDownloadState(String romFileName) {
-        try {
-            String key = "download_state_" + romFileName;
-            saveStringPreference(key, "none");
-            Log.d(TAG, "다운로드 상태 정리: " + romFileName);
-        } catch (Exception e) {
-            Log.e(TAG, "다운로드 상태 정리 중 오류", e);
-        }
-    }
-
-    /**
      * 다운로드 관련 오류 다이얼로그를 표시하는 메서드
      */
     public void showDownloadErrorDialog(android.app.Activity activity, String gameName, String error,
@@ -926,23 +653,23 @@ public class UtilHelper {
         if (!isDebugMode()) return;
 
         try {
-            Log.d(TAG, "=== ROMs 디렉토리 상태 ===");
-            Log.d(TAG, "경로: " + romsPath);
+//            Log.d(TAG, "=== ROMs 디렉토리 상태 ===");
+//            Log.d(TAG, "경로: " + romsPath);
 
             File romsDir = new File(romsPath);
             if (!romsDir.exists()) {
-                Log.d(TAG, "디렉토리 존재하지 않음");
+//                Log.d(TAG, "디렉토리 존재하지 않음");
                 return;
             }
 
-            Log.d(TAG, "디렉토리 존재: " + romsDir.isDirectory());
-            Log.d(TAG, "읽기 권한: " + romsDir.canRead());
-            Log.d(TAG, "쓰기 권한: " + romsDir.canWrite());
-            Log.d(TAG, "사용 가능 공간: " + formatBytes(romsDir.getUsableSpace()));
+//            Log.d(TAG, "디렉토리 존재: " + romsDir.isDirectory());
+//            Log.d(TAG, "읽기 권한: " + romsDir.canRead());
+//            Log.d(TAG, "쓰기 권한: " + romsDir.canWrite());
+//            Log.d(TAG, "사용 가능 공간: " + formatBytes(romsDir.getUsableSpace()));
 
             File[] files = romsDir.listFiles();
             if (files != null) {
-                Log.d(TAG, "총 파일 수: " + files.length);
+//                Log.d(TAG, "총 파일 수: " + files.length);
 
                 int romCount = 0;
                 int tempCount = 0;
@@ -958,14 +685,14 @@ public class UtilHelper {
                     }
                 }
 
-                Log.d(TAG, "ROM 파일: " + romCount);
-                Log.d(TAG, "임시 파일: " + tempCount);
-                Log.d(TAG, "백업 파일: " + backupCount);
+//                Log.d(TAG, "ROM 파일: " + romCount);
+//                Log.d(TAG, "임시 파일: " + tempCount);
+//                Log.d(TAG, "백업 파일: " + backupCount);
             } else {
                 Log.d(TAG, "파일 목록을 가져올 수 없음");
             }
 
-            Log.d(TAG, "========================");
+//            Log.d(TAG, "========================");
 
         } catch (Exception e) {
             Log.e(TAG, "ROMs 디렉토리 상태 확인 중 오류", e);

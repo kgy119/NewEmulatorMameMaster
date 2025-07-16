@@ -55,6 +55,7 @@ import android.view.MotionEvent;
 import com.ingcorp.webhard.Emulator;
 import com.ingcorp.webhard.MAME4droid;
 import com.ingcorp.webhard.R;
+import com.ingcorp.webhard.SplashActivity;
 import com.ingcorp.webhard.base.Constants;
 import com.ingcorp.webhard.helpers.DialogHelper;
 import com.ingcorp.webhard.helpers.PrefsHelper;
@@ -303,6 +304,17 @@ public class TouchController implements IController {
 							iv.getType() == TYPE_BUTTON_RECT && iv.getValue() == BTN_COIN) {
 
 						UtilHelper utilHelper = UtilHelper.getInstance(mm);
+
+						// 인터넷 연결 확인 후 없으면 경고창
+						if (!utilHelper.isNetworkConnected()) {
+							Log.w("TouchController", "인터넷 연결이 없어 코인 처리 중단");
+
+							// 게임용 네트워크 에러 다이얼로그 표시 (앱 종료하지 않음)
+							utilHelper.showGameNetworkErrorDialog(mm);
+
+							// 인터넷 연결이 없으면 여기서 중단 - 코인 증가나 광고 처리 없음
+							break;
+						}
 
 						mm.getInputView().updateCoinImages();
 

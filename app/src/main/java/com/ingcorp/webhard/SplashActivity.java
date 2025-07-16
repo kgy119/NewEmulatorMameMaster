@@ -158,16 +158,19 @@ public class SplashActivity extends Activity {
      * 버전 체크 수행
      */
     private void checkVersion() {
+        Log.d(TAG, "앱 버전 확인을 시작합니다");
+
         NetworkClient.getApiService().getVersionInfo().enqueue(new Callback<VersionResponse>() {
             @Override
             public void onResponse(Call<VersionResponse> call, Response<VersionResponse> response) {
                 if (response.isSuccessful() && response.body() != null) {
-                    Log.e(TAG, "Version check success: " + response.body());
+                    Log.d(TAG, "버전 확인 성공: " + response.body());
                     handleVersionResponse(response.body());
                 } else {
-                    Log.e(TAG, "Version check failed: " + response.code());
+                    Log.e(TAG, "버전 확인 실패 - 응답 코드: " + response.code());
                     // 네트워크 에러 시 재확인
                     if (!utilHelper.isNetworkConnected()) {
+                        Log.w(TAG, "네트워크 연결이 끊어짐 - 네트워크 오류 다이얼로그 표시");
                         utilHelper.showNetworkErrorDialog(SplashActivity.this);
                         return;
                     }
@@ -177,12 +180,14 @@ public class SplashActivity extends Activity {
 
             @Override
             public void onFailure(Call<VersionResponse> call, Throwable t) {
-                Log.e(TAG, "Version check error", t);
+                Log.e(TAG, "버전 확인 중 오류 발생", t);
                 // 네트워크 에러 시 재확인
                 if (!utilHelper.isNetworkConnected()) {
+                    Log.w(TAG, "네트워크 연결이 끊어짐 - 네트워크 오류 다이얼로그 표시");
                     utilHelper.showNetworkErrorDialog(SplashActivity.this);
                     return;
                 }
+                Log.d(TAG, "버전 확인 실패했지만 앱을 계속 진행합니다");
                 onVersionCheckCompleted();
             }
         });
@@ -192,10 +197,13 @@ public class SplashActivity extends Activity {
         VersionResponse.Root root = versionResponse.getRoot();
 
         if (root.isCheck()) {
+            Log.d(TAG, "서버에서 버전 체크가 활성화됨");
+
             String currentPackageName = getPackageName();
             String serverPackageName = root.getPackageName();
 
             if (!currentPackageName.equals(serverPackageName)) {
+                Log.w(TAG, "패키지명이 다름 - 현재: " + currentPackageName + ", 서버: " + serverPackageName);
                 showPackageUpdateDialog(serverPackageName);
                 return;
             }
@@ -203,16 +211,21 @@ public class SplashActivity extends Activity {
             int currentVersionCode = getCurrentVersionCode();
             int serverVersionCode = root.getNowVersionCode();
 
+            Log.d(TAG, "버전 코드 확인 - 현재: " + currentVersionCode + ", 서버: " + serverVersionCode);
+
             if (currentVersionCode < serverVersionCode) {
+                Log.i(TAG, "새 버전이 있습니다. 업데이트가 필요합니다");
                 showVersionUpdateDialog();
                 return;
             }
 
+            Log.d(TAG, "최신 버전입니다. 광고 설정을 저장합니다");
             // 광고 설정 저장
             saveAdSettingsFromServer(root);
 
             checkGameListVersion(root.getGameListVersion());
         } else {
+            Log.d(TAG, "서버에서 버전 체크가 비활성화됨 - 바로 진행");
             onVersionCheckCompleted();
             checkGameListVersionForced();
         }
@@ -226,6 +239,9 @@ public class SplashActivity extends Activity {
             int adFullCoinCnt = root.getAdFullCoinCnt(); // 보상형 광고 코인 개수
             int adNativeCnt = root.getAdNativeCnt(); // 네이티브 광고 주기
 
+            Log.d(TAG, "광고 설정 저장 중 - 배너: " + adBannerUse + ", 전면주기: " + adFullCnt +
+                    ", 보상코인: " + adFullCoinCnt + ", 네이티브주기: " + adNativeCnt);
+
             // UtilHelper를 통해 광고 설정 저장
             utilHelper.saveAdSettings(adBannerUse, adFullCnt, adFullCoinCnt, adNativeCnt);
 
@@ -235,17 +251,20 @@ public class SplashActivity extends Activity {
         } catch (Exception e) {
             Log.e(TAG, "광고 설정 저장 중 오류 발생: " + e.getMessage(), e);
             // 오류 발생 시 기본값으로 저장
+            Log.w(TAG, "기본 광고 설정으로 저장합니다");
             utilHelper.saveAdSettings(true, 1, 5, 10);
         }
     }
 
     private void checkGameListVersion(int serverGameListVersion) {
+        Log.d(TAG, "게임 리스트 버전 확인 중 - 서버: " + serverGameListVersion +
+                ", 현재: " + gameListManager.getCurrentGameListVersion());
+
         if (gameListManager.needsUpdate(serverGameListVersion)) {
-            Log.d(TAG, "Game list update needed. Server version: " + serverGameListVersion +
-                    ", Current version: " + gameListManager.getCurrentGameListVersion());
+            Log.i(TAG, "게임 리스트 업데이트가 필요합니다. 다운로드를 시작합니다");
             updateGameList(serverGameListVersion);
         } else {
-            Log.d(TAG, "No need to update game list. Version: " + serverGameListVersion);
+            Log.d(TAG, "게임 리스트가 최신 버전입니다. 업데이트가 필요하지 않습니다");
             onGameListUpdateCompleted();
         }
         onVersionCheckCompleted();
@@ -253,41 +272,49 @@ public class SplashActivity extends Activity {
 
     private void checkGameListVersionForced() {
         int currentVersion = gameListManager.getCurrentGameListVersion();
+        Log.d(TAG, "강제 게임 리스트 버전 확인 - 현재 버전: " + currentVersion);
+
         if (currentVersion == 0) {
-            Log.d(TAG, "First install detected. Downloading game list...");
+            Log.i(TAG, "첫 설치가 감지되었습니다. 게임 리스트를 다운로드합니다");
             updateGameList(1);
         } else {
+            Log.d(TAG, "게임 리스트가 이미 존재합니다");
             onGameListUpdateCompleted();
         }
     }
 
     private void updateGameList(int newVersion) {
+        Log.d(TAG, "게임 리스트 업데이트 시작 - 새 버전: " + newVersion);
+
         gameListManager.updateGameList(newVersion, new GameListManager.GameListUpdateListener() {
             @Override
             public void onUpdateStarted() {
-                Log.d(TAG, "Game list update started");
+                Log.d(TAG, "게임 리스트 업데이트가 시작되었습니다");
             }
 
             @Override
             public void onUpdateCompleted() {
-                Log.d(TAG, "Game list update completed successfully");
+                Log.i(TAG, "게임 리스트 업데이트가 성공적으로 완료되었습니다");
                 onGameListUpdateCompleted();
             }
 
             @Override
             public void onUpdateFailed(String error) {
-                Log.e(TAG, "Game list update failed: " + error);
+                Log.e(TAG, "게임 리스트 업데이트 실패: " + error);
                 // 네트워크 에러로 인한 실패인지 확인
                 if (!utilHelper.isNetworkConnected()) {
+                    Log.w(TAG, "네트워크 연결 문제로 게임 리스트 업데이트 실패");
                     utilHelper.showNetworkErrorDialog(SplashActivity.this);
                     return;
                 }
+                Log.w(TAG, "게임 리스트 업데이트에 실패했지만 앱을 계속 진행합니다");
                 onGameListUpdateCompleted();
             }
         });
     }
 
     private void onGameListUpdateCompleted() {
+        Log.d(TAG, "게임 리스트 업데이트 작업 완료");
         isGameListUpdateCompleted = true;
         checkAndProceedToMain();
     }
@@ -301,17 +328,22 @@ public class SplashActivity extends Activity {
                 return packageInfo.versionCode;
             }
         } catch (PackageManager.NameNotFoundException e) {
-            Log.e(TAG, "Could not get version code", e);
+            Log.e(TAG, "앱의 버전 코드를 가져올 수 없습니다", e);
             return 0;
         }
     }
 
     private void showPackageUpdateDialog(String packageName) {
+        Log.i(TAG, "패키지 업데이트 다이얼로그 표시");
         new AlertDialog.Builder(this)
                 .setTitle("App Update Required")
                 .setMessage("A new version of the app is available. Please update from the Play Store.")
-                .setPositiveButton("Update", (dialog, which) -> openPlayStore(packageName))
+                .setPositiveButton("Update", (dialog, which) -> {
+                    Log.d(TAG, "사용자가 업데이트 버튼을 클릭했습니다");
+                    openPlayStore(packageName);
+                })
                 .setNegativeButton("Later", (dialog, which) -> {
+                    Log.d(TAG, "사용자가 나중에 버튼을 클릭했습니다. 앱을 종료합니다");
                     finish();
                     System.exit(0);
                 })
@@ -320,11 +352,16 @@ public class SplashActivity extends Activity {
     }
 
     private void showVersionUpdateDialog() {
+        Log.i(TAG, "버전 업데이트 다이얼로그 표시");
         new AlertDialog.Builder(this)
                 .setTitle("App Update")
                 .setMessage("A new version has been released. Would you like to update?")
-                .setPositiveButton("Update", (dialog, which) -> openPlayStore(getPackageName()))
+                .setPositiveButton("Update", (dialog, which) -> {
+                    Log.d(TAG, "사용자가 업데이트 버튼을 클릭했습니다");
+                    openPlayStore(getPackageName());
+                })
                 .setNegativeButton("Later", (dialog, which) -> {
+                    Log.d(TAG, "사용자가 나중에 버튼을 클릭했습니다. 앱을 종료합니다");
                     finish();
                     System.exit(0);
                 })
@@ -333,11 +370,14 @@ public class SplashActivity extends Activity {
     }
 
     private void openPlayStore(String packageName) {
+        Log.d(TAG, "플레이스토어 열기 시도: " + packageName);
         try {
             Intent intent = new Intent(Intent.ACTION_VIEW,
                     Uri.parse("market://details?id=" + packageName));
             startActivity(intent);
+            Log.d(TAG, "플레이스토어 앱으로 이동 성공");
         } catch (android.content.ActivityNotFoundException e) {
+            Log.w(TAG, "플레이스토어 앱이 없어 웹브라우저로 이동합니다");
             Intent intent = new Intent(Intent.ACTION_VIEW,
                     Uri.parse("https://play.google.com/store/apps/details?id=" + packageName));
             startActivity(intent);
@@ -346,24 +386,33 @@ public class SplashActivity extends Activity {
     }
 
     private void onVersionCheckCompleted() {
+        Log.d(TAG, "버전 확인 작업 완료");
         isVersionCheckCompleted = true;
         checkAndProceedToMain();
     }
 
     private void startSplashTimer() {
+        Log.d(TAG, "스플래시 타이머 시작 (" + SPLASH_DURATION + "ms)");
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            Log.d(TAG, "스플래시 타이머 완료");
             isSplashTimeCompleted = true;
             checkAndProceedToMain();
         }, SPLASH_DURATION);
     }
 
     private void checkAndProceedToMain() {
+        Log.d(TAG, "메인 화면 진행 조건 확인 - 버전체크: " + isVersionCheckCompleted +
+                ", 스플래시시간: " + isSplashTimeCompleted +
+                ", 게임리스트: " + isGameListUpdateCompleted);
+
         if (isVersionCheckCompleted && isSplashTimeCompleted && isGameListUpdateCompleted) {
+            Log.i(TAG, "모든 조건이 완료되어 메인 화면으로 이동합니다");
             startMainActivity();
         }
     }
 
     private void startMainActivity() {
+        Log.d(TAG, "MainActivity 시작");
         Intent intent = new Intent(SplashActivity.this, MainActivity.class);
         startActivity(intent);
         finish();
@@ -373,5 +422,6 @@ public class SplashActivity extends Activity {
     @Override
     public void onBackPressed() {
         // 스플래시 화면에서 뒤로가기 버튼 비활성화
+        Log.d(TAG, "스플래시 화면에서 뒤로가기 버튼이 눌렸지만 무시됩니다");
     }
 }

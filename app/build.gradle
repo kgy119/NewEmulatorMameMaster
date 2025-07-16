@@ -1,4 +1,5 @@
 apply plugin: 'com.android.application'
+apply plugin: 'com.google.gms.google-services'
 
 android {
     compileSdk 35
@@ -18,8 +19,8 @@ android {
         applicationId "com.ingcorp.webhard"
         minSdkVersion 29
         targetSdkVersion 35
-        versionCode 1
-        versionName '1.1'
+        versionCode 22
+        versionName '2.22'
 
         ndk {
             moduleName "mame4droid-jni"
@@ -31,7 +32,7 @@ android {
     }
 
 	base {
-		archivesName = "MAME4droid 2025-" + defaultConfig.versionName
+		archivesName = "RetroMaster 2025-" + defaultConfig.versionName
 	}
 
     bundle {
@@ -79,12 +80,62 @@ android {
         }
     }
 
+    configurations.all {
+        resolutionStrategy.eachDependency { details ->
+            if (details.requested.group == 'org.jetbrains.kotlin') {
+                details.useVersion '1.8.20'
+            }
+        }
+    }
+
+
     namespace 'com.ingcorp.webhard'
 
 }
 
 dependencies {
-	//implementation "androidx.annotation:annotation:1.7.0"
+    // Firebase BOM (Bill of Materials) - 버전 관리
+    implementation platform('com.google.firebase:firebase-bom:33.1.2')
+
+    // Firebase Cloud Messaging
+    implementation 'com.google.firebase:firebase-messaging'
+
+    // Firebase Analytics (선택사항 - FCM과 함께 사용 권장)
+    implementation 'com.google.firebase:firebase-analytics'
+
+    // Google Play In-App Review API
+    implementation 'com.google.android.play:review:2.0.1'
+    implementation 'com.google.android.play:review-ktx:2.0.1'
+
+    // Google AdMob
+    implementation 'com.google.android.gms:play-services-ads:22.6.0'
+
+    // Glide 이미지 로딩 라이브러리
+    implementation 'com.github.bumptech.glide:glide:4.16.0'
+    annotationProcessor 'com.github.bumptech.glide:compiler:4.16.0'
+
+    // Room 데이터베이스
+    implementation 'androidx.room:room-runtime:2.5.0'
+    annotationProcessor 'androidx.room:room-compiler:2.5.0'
+
+    // SharedPreferences 대안 (버전 저장용)
+    implementation 'androidx.preference:preference:1.2.1'
+
+    // Retrofit 최신 버전
+    implementation 'com.squareup.retrofit2:retrofit:2.9.0'
+    implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
+    implementation 'com.squareup.okhttp3:logging-interceptor:4.11.0'
+
+    // Gson
+    implementation 'com.google.code.gson:gson:2.10.1'
+    implementation 'androidx.viewpager2:viewpager2:1.0.0'
+    implementation 'androidx.fragment:fragment:1.6.2'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'androidx.recyclerview:recyclerview:1.3.2'
+    // 명시적 Kotlin stdlib 선언 (충돌 방지)
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.8.20'
+
+
 }
 
 androidComponents {

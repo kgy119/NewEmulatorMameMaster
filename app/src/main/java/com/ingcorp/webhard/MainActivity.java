@@ -579,25 +579,25 @@ public class MainActivity extends FragmentActivity {
      * 알림 권한 요청 상태를 재설정하는 메서드 (디버깅용)
      * 실제 배포시에는 제거하거나 주석처리
      */
-    private void resetNotificationRequestState() {
-        SharedPreferences prefs = getSharedPreferences("WebHardPrefs", Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = prefs.edit();
-        editor.putLong(LAST_NOTIFICATION_REQUEST_KEY, 0);
-        editor.apply();
-        Log.d(Constants.LOG_TAG, "알림 권한 요청 상태 재설정됨");
-    }
+//    private void resetNotificationRequestState() {
+//        SharedPreferences prefs = getSharedPreferences("WebHardPrefs", Context.MODE_PRIVATE);
+//        SharedPreferences.Editor editor = prefs.edit();
+//        editor.putLong(LAST_NOTIFICATION_REQUEST_KEY, 0);
+//        editor.apply();
+//        Log.d(Constants.LOG_TAG, "알림 권한 요청 상태 재설정됨");
+//    }
 
     /**
      * 리뷰 요청 상태를 재설정하는 메서드 (디버깅용)
      * 실제 배포시에는 제거하거나 주석처리
      */
-    private void resetReviewRequestState() {
-        SharedPreferences prefs = getSharedPreferences("WebHardPrefs", Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = prefs.edit();
-        editor.putBoolean(REVIEW_PREF_KEY, false);
-        editor.apply();
-        Log.d(Constants.LOG_TAG, "리뷰 요청 상태 재설정됨");
-    }
+//    private void resetReviewRequestState() {
+//        SharedPreferences prefs = getSharedPreferences("WebHardPrefs", Context.MODE_PRIVATE);
+//        SharedPreferences.Editor editor = prefs.edit();
+//        editor.putBoolean(REVIEW_PREF_KEY, false);
+//        editor.apply();
+//        Log.d(Constants.LOG_TAG, "리뷰 요청 상태 재설정됨");
+//    }
 
     @Override
     protected void onPause() {

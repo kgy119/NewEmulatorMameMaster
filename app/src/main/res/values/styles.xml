@@ -8,6 +8,16 @@
 		<item name="android:statusBarColor">@color/colorPrimaryDark</item>
 	</style>
 
+	<style name="SplashTheme" parent="android:Theme.Black.NoTitleBar.Fullscreen">
+		<item name="android:windowBackground">@null</item>
+		<!-- API 21 이상에서 네비게이션 바 설정 -->
+		<item name="android:windowDrawsSystemBarBackgrounds">true</item>
+		<item name="android:navigationBarColor">@android:color/transparent</item>
+		<item name="android:windowTranslucentNavigation">true</item>
+		<!-- 전체 화면 설정 -->
+		<item name="android:windowFullscreen">true</item>
+	</style>
+
 	<style name="ListText">
 		<item name="android:textSize">26sp</item>
 		<item name="android:textColor">@color/white</item>

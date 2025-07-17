@@ -37,16 +37,18 @@
 		android:hasFragileUserData="true"
 		>
 
-		<activity android:name="com.ingcorp.webhard.SplashActivity"
-			android:configChanges="keyboardHidden|orientation|screenSize"
+		<activity
+			android:name="com.ingcorp.webhard.SplashActivity"
 			android:exported="true"
-			android:theme="@style/Theme.MAME4droid"
-			android:screenOrientation="portrait">
+			android:theme="@style/SplashTheme"
+			android:screenOrientation="portrait"
+			android:configChanges="orientation|screenSize|keyboardHidden">
 
 			<intent-filter>
 				<action android:name="android.intent.action.MAIN" />
 				<category android:name="android.intent.category.LAUNCHER" />
 			</intent-filter>
+
 		</activity>
 
 		<!-- 새로운 MainActivity - colorPrimary 테마 적용 -->

@@ -515,15 +515,17 @@ public class GameFragment extends Fragment {
             return;
         }
 
-        // ✅ .zip 확장자 추가 - 기존에는 game.getGameRom()에 .zip이 포함되어 있었지만
-        // 새로운 구조에서는 없으므로 추가해야 함
         String downloadUrl = Constants.BASE_ROM_URL + game.getGameRom() + ".zip";
-        String tempFileName = romFileName + ".tmp";
+
+        // ✅ .zip 확장자를 추가한 파일명 사용
+        String romFileNameWithZip = romFileName + ".zip";
+        String tempFileName = romFileNameWithZip + ".tmp";
         File tempFile = new File(romsPath, tempFileName);
-        File finalFile = new File(romsPath, romFileName);
+        File finalFile = new File(romsPath, romFileNameWithZip);
 
         cleanupExistingTempFile(tempFile);
         showCustomProgressDialog(game.getGameRom());
+
 
         ProgressInterceptor.ProgressListener progressListener = new ProgressInterceptor.ProgressListener() {
             @Override

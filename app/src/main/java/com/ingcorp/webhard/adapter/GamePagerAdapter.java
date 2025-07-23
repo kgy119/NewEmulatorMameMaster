@@ -1,5 +1,6 @@
 package com.ingcorp.webhard.adapter;
 
+import android.content.Context;
 import android.util.Log;
 import android.util.SparseArray;
 import androidx.annotation.NonNull;
@@ -8,22 +9,26 @@ import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.Lifecycle;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 
+import com.ingcorp.webhard.R;
 import com.ingcorp.webhard.fragment.GameFragment;
 import com.ingcorp.webhard.manager.GameListManager;
 
 public class GamePagerAdapter extends FragmentStateAdapter {
     private static final String TAG = "GamePagerAdapter";
-    private static final String[] TABS = {"ALL", "FIGHT", "ACTION", "SHOOTING", "SPORTS", "PUZZLE"};
+    private Context context;
 
     private GameListManager gameListManager;
     private SparseArray<GameFragment> fragmentCache = new SparseArray<>();
 
     public GamePagerAdapter(@NonNull FragmentManager fragmentManager,
                             @NonNull Lifecycle lifecycle,
-                            GameListManager gameListManager) {
+                            GameListManager gameListManager,
+                            Context context) {
         super(fragmentManager, lifecycle);
         this.gameListManager = gameListManager;
+        this.context = context;
     }
+
 
     @NonNull
     @Override
@@ -53,21 +58,12 @@ public class GamePagerAdapter extends FragmentStateAdapter {
 
     @Override
     public int getItemCount() {
-        return TABS.length;
-    }
-
-    /**
-     * GameListManager 업데이트 메서드
-     */
-    public void updateGameListManager(GameListManager gameListManager) {
-        this.gameListManager = gameListManager;
-
-        // 캐시된 프래그먼트들에도 업데이트 전파
-        for (int i = 0; i < fragmentCache.size(); i++) {
-            GameFragment fragment = fragmentCache.valueAt(i);
-            if (fragment != null) {
-                fragment.updateGameListManager(gameListManager);
-            }
+        if (context != null) {
+            String[] categories = context.getResources().getStringArray(R.array.game_categories);
+            return categories.length;
         }
+        return 6; // fallback
     }
+
+
 }

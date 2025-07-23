@@ -3,6 +3,7 @@
 
 	<string-array name="game_categories">
 		<item>ALL</item>
+		<item>FPS</item>
 		<item>FIGHT</item>
 		<item>ACTION</item>
 		<item>SHOOTING</item>

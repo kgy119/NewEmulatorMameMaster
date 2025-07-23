@@ -129,11 +129,6 @@ public class GameFragment extends Fragment {
         return view;
     }
 
-    private String getTabCategory(int position) {
-        String[] categories = {"ALL", "FIGHT", "ACTION", "SHOOTING", "SPORTS", "PUZZLE"};
-        return position < categories.length ? categories[position] : "UNKNOWN";
-    }
-
     private String[] getGameCategories() {
         return getResources().getStringArray(R.array.game_categories);
     }

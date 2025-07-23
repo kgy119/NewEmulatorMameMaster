@@ -116,7 +116,8 @@ public class GameAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         public void bind(Game game) {
             if (game == null) return;
 
-            gameNameText.setText(game.getGameName());
+            // ✅ game.getGameName() 대신 game.getGameRom() 사용
+            gameNameText.setText(game.getGameRom());
             loadGameImage(game);
 
             itemContainer.setOnClickListener(v -> {
@@ -131,16 +132,13 @@ public class GameAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 utilHelper.showConfirmDialog(
                         (android.app.Activity) context,
                         "Launch Game",
-                        "Do you want to start " + game.getGameName() + "?",
-                        () -> proceedWithGameLaunch(game)
+                        "Do you want to start " + game.getGameRom() + "?", // ✅ 여기도 수정
+                        () -> {
+                            if (onGameClickListener != null) {
+                                onGameClickListener.onGameClick(game);
+                            }
+                        }
                 );
-            });
-
-            itemContainer.setOnLongClickListener(v -> {
-                if (onGameClickListener != null) {
-                    onGameClickListener.onGameLongClick(game);
-                }
-                return true;
             });
         }
 
@@ -186,16 +184,18 @@ public class GameAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         }
 
         private void loadGameImage(Game game) {
-            String gameId = game.getGameId();
-            if (gameId != null) {
-                int drawableId = getDrawableResourceId(gameId);
+            // ✅ game_rom 기반으로 drawable 리소스 확인
+            String gameRom = game.getGameRom();
+            if (gameRom != null) {
+                int drawableId = getDrawableResourceId(gameRom);
                 if (drawableId != 0) {
                     gameImage.setImageResource(drawableId);
                     return;
                 }
             }
 
-            String imageUrl = buildImageUrl(game.getGameImg());
+            // ✅ drawable에 없으면 서버에서 game_rom + ".jpg" 로 이미지 로드
+            String imageUrl = buildImageUrl(gameRom + ".jpg");
 
             RequestOptions requestOptions = new RequestOptions()
                     .placeholder(getDefaultImageForCategory(game.getGameCate()))
@@ -209,8 +209,11 @@ public class GameAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                     .into(gameImage);
         }
 
-        private int getDrawableResourceId(String gameId) {
-            String resourceName = "game_" + gameId.toLowerCase().replaceAll("[^a-z0-9]", "_");
+        private int getDrawableResourceId(String gameRom) {
+            // ✅ game_rom을 그대로 사용하여 drawable 리소스 찾기
+            // 예: "tekken3ua" → "tekken3ua" (변환 없이 그대로)
+            // 또는 특수문자가 있다면 언더스코어로 변환
+            String resourceName = gameRom.toLowerCase().replaceAll("[^a-z0-9]", "_");
             return context.getResources().getIdentifier(resourceName, "drawable", context.getPackageName());
         }
 

@@ -80,42 +80,13 @@ public class GameListManager {
                 if (response.isSuccessful() && response.body() != null) {
                     GameListResponse gameListResponse = response.body();
 
-                    if ("0000".equals(gameListResponse.getResultCode())) {
-                        Log.e(TAG, "response.isSuccessful: " + response.body());
-                        // 백그라운드에서 데이터베이스 작업 수행 (Executor 사용)
-                        saveGameListToDatabase(gameListResponse, newVersion, new GameListUpdateListener() {
-                            @Override
-                            public void onUpdateStarted() {
-                                // 생략 가능
-                            }
-
-                            @Override
-                            public void onUpdateCompleted() {
-                                // ✅ 게임 리스트 업데이트 성공 시 버전 저장
-                                UtilHelper.getInstance(context).saveGameListVersion(newVersion);
-                                if (listener != null) {
-                                    listener.onUpdateCompleted();
-                                }
-                            }
-
-                            @Override
-                            public void onUpdateFailed(String error) {
-                                if (listener != null) {
-                                    listener.onUpdateFailed(error);
-                                }
-                            }
-                        });
-
-                    } else {
-                        Log.e(TAG, "Server returned error code: " + gameListResponse.getResultCode());
-                        if (listener != null) {
-                            listener.onUpdateFailed("Server error: " + gameListResponse.getResultCode());
-                        }
-                    }
+                    // result_code 체크 제거 - 새 JSON에는 없음
+                    Log.e(TAG, "response.isSuccessful: " + response.body());
+                    saveGameListToDatabase(gameListResponse, newVersion, listener);
                 } else {
-                    Log.e(TAG, "Game list update failed: " + response.code());
+                    Log.e(TAG, "Game list response failed");
                     if (listener != null) {
-                        listener.onUpdateFailed("Network error: " + response.code());
+                        listener.onUpdateFailed("Server response failed");
                     }
                 }
             }
@@ -138,46 +109,36 @@ public class GameListManager {
                                         GameListUpdateListener listener) {
         executorService.execute(() -> {
             try {
-                // 기존 데이터 모두 삭제
                 database.gameDao().deleteAllGames();
 
-                // 새로운 게임 리스트 저장
+                // 새로운 게임 리스트 저장 - 3개 필드만 사용
                 List<Game> games = new ArrayList<>();
                 for (GameListResponse.GameItem item : gameListResponse.getList()) {
                     Game game = new Game(
-                            item.getGameId(),
-                            item.getGameName(),
                             item.getGameCate(),
-                            item.getGameRom(),
-                            item.getGameImg(),
-                            item.getGameCnt(),
-                            item.getGameLength()
+                            item.getGameRom()
                     );
                     games.add(game);
                 }
 
                 database.gameDao().insertGames(games);
-
-                // 버전 정보 저장
                 saveGameListVersion(newVersion);
 
                 Log.d(TAG, "Game list updated successfully. " + games.size() + " games saved.");
 
-                // 메인 스레드에서 콜백 호출
                 if (listener != null) {
                     mainHandler.post(() -> listener.onUpdateCompleted());
                 }
 
             } catch (Exception e) {
                 Log.e(TAG, "Failed to save game list", e);
-
-                // 메인 스레드에서 에러 콜백 호출
                 if (listener != null) {
                     mainHandler.post(() -> listener.onUpdateFailed("Database save failed: " + e.getMessage()));
                 }
             }
         });
     }
+
 
     /**
      * 저장된 게임 개수 가져오기 (Executor 사용)

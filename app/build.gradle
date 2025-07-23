@@ -3,17 +3,16 @@ apply plugin: 'com.google.gms.google-services'
 
 android {
     compileSdk 35
+    ndkVersion "27.2.12479018"  // 통일
 
-    ndkVersion "21.3.6528147"
+    buildFeatures {
+        buildConfig = true
+    }
 
-	buildFeatures {
-		buildConfig = true
-	}
-
-	compileOptions {
-		sourceCompatibility = JavaVersion.VERSION_17
-		targetCompatibility = JavaVersion.VERSION_17
-	}
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
 
     defaultConfig {
         applicationId "com.ingcorp.webhard"
@@ -24,54 +23,50 @@ android {
 
         ndk {
             moduleName "mame4droid-jni"
-            //noinspection ChromeOsAbiSupport
-            abiFilters  "arm64-v8a"
-			//ndkPath "C:\\Android\\android-ndk-r27c"
-			ndkVersion "27.2.12479018"
+            abiFilters "arm64-v8a"
+        }
+
+        // 16KB 페이지 크기 지원
+        externalNativeBuild {
+            ndkBuild {
+                arguments "APP_SUPPORT_FLEXIBLE_PAGE_SIZES=true"
+            }
         }
     }
 
-	base {
-		archivesName = "RetroMaster 2025-" + defaultConfig.versionName
-	}
+    base {
+        archivesName = "RetroMaster 2025-" + defaultConfig.versionName
+    }
 
     bundle {
         language {
-            // This property is set to true by default.
             enableSplit = false
         }
         density {
-            // This property is set to true by default.
             enableSplit = false
         }
         abi {
-            // This property is set to true by default.
             enableSplit = false
         }
     }
 
     packagingOptions {
-		//doNotStrip "**/*.so" //CUIDADO QUITAR EN RELEASE. Lo he añadido al final con nueva sintaxis
         jniLibs {
-            useLegacyPackaging = true
+            useLegacyPackaging = true  // 이미 설정되어 있음 - 좋음
         }
     }
 
     buildTypes {
         release {
-			//minifyEnabled true
-			minifyEnabled false
-			//shrinkResources true
-
+            minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
-			signingConfig signingConfigs.debug
-		}
-		debug {
-			minifyEnabled false
-			debuggable true
-			jniDebuggable true
-			//renderscriptDebuggable true
-		}
+            signingConfig signingConfigs.debug
+        }
+        debug {
+            minifyEnabled false
+            debuggable true
+            jniDebuggable true
+        }
     }
 
     externalNativeBuild {
@@ -88,10 +83,9 @@ android {
         }
     }
 
-
     namespace 'com.ingcorp.webhard'
-
 }
+
 
 dependencies {
     // Firebase BOM (Bill of Materials) - 버전 관리

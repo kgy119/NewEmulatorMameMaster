@@ -16,9 +16,6 @@ public interface GameDao {
     @Query("SELECT * FROM games WHERE game_cate = :category")
     List<Game> getGamesByCategory(String category);
 
-    @Query("SELECT * FROM games WHERE game_id = :gameId")
-    Game getGameById(String gameId);
-
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertGame(Game game);
 

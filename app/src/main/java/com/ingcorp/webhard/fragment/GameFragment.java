@@ -291,10 +291,10 @@ public class GameFragment extends Fragment {
             intent.setAction(android.content.Intent.ACTION_VIEW);
             intent.setData(android.net.Uri.fromFile(new File(romFilePath)));
 
-            intent.putExtra("game_name", game.getGameName());
-            intent.putExtra("game_id", game.getGameId());
+            intent.putExtra("game_name", game.getGameRom()); // ✅ getGameName() → getGameRom()
+            // intent.putExtra("game_id", game.getGameId()); // ✅ 제거
 
-            showToast("Starting game: " + game.getGameName());
+            showToast("Starting game: " + game.getGameRom()); // ✅ getGameName() → getGameRom()
             startActivity(intent);
 
         } catch (Exception e) {
@@ -390,7 +390,9 @@ public class GameFragment extends Fragment {
             return;
         }
 
-        File romFile = new File(romsPath, romFileName);
+        // ✅ .zip 확장자 추가
+        String romFileNameWithZip = romFileName + ".zip";
+        File romFile = new File(romsPath, romFileNameWithZip);
 
         if (isRomFileValid(romFile)) {
             launchGame(game, romFile.getAbsolutePath());
@@ -513,13 +515,15 @@ public class GameFragment extends Fragment {
             return;
         }
 
-        String downloadUrl = Constants.BASE_ROM_URL + game.getGameRom();
+        // ✅ .zip 확장자 추가 - 기존에는 game.getGameRom()에 .zip이 포함되어 있었지만
+        // 새로운 구조에서는 없으므로 추가해야 함
+        String downloadUrl = Constants.BASE_ROM_URL + game.getGameRom() + ".zip";
         String tempFileName = romFileName + ".tmp";
         File tempFile = new File(romsPath, tempFileName);
         File finalFile = new File(romsPath, romFileName);
 
         cleanupExistingTempFile(tempFile);
-        showCustomProgressDialog(game.getGameName());
+        showCustomProgressDialog(game.getGameRom());
 
         ProgressInterceptor.ProgressListener progressListener = new ProgressInterceptor.ProgressListener() {
             @Override
@@ -659,10 +663,10 @@ public class GameFragment extends Fragment {
 
             utilHelper.showDownloadErrorDialog(
                     (android.app.Activity) getActivity(),
-                    game.getGameName(),
+                    game.getGameRom(), // ✅ getGameName() → getGameRom()
                     error,
                     () -> {
-                        Log.d(TAG, "Download retry for: " + game.getGameName());
+                        Log.d(TAG, "Download retry for: " + game.getGameRom()); // ✅ getGameName() → getGameRom()
                         checkRomAndLaunchGame(game);
                     }
             );

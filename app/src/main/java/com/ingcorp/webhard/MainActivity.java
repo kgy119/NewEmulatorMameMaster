@@ -195,8 +195,9 @@ public class MainActivity extends FragmentActivity {
      * 탭 개수를 반환하는 헬퍼 메서드
      */
     private int getTabCount() {
-        return 6; // {"ALL", "FIGHT", "ACTION", "SHOOTING", "SPORTS", "PUZZLE"}
+        return tabs.length; // strings.xml에서 로드된 탭 배열 길이 사용
     }
+
 
     private void initViews() {
         viewPager = findViewById(R.id.view_pager);
@@ -241,7 +242,8 @@ public class MainActivity extends FragmentActivity {
         GamePagerAdapter adapter = new GamePagerAdapter(
                 getSupportFragmentManager(),
                 getLifecycle(),
-                gameListManager
+                gameListManager,
+                this  // Context 추가
         );
 
         viewPager.setAdapter(adapter);
@@ -256,6 +258,7 @@ public class MainActivity extends FragmentActivity {
             }
         });
     }
+
 
     private void selectTab(int index) {
         if (selectedTabIndex != index) {

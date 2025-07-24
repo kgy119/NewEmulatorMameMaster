@@ -24,13 +24,14 @@
         android:layout_width="160dp"
         android:layout_height="wrap_content"
         android:textColor="@color/white"
-        android:textSize="12sp"
+        android:textSize="14sp"
         android:textStyle="bold"
         android:gravity="center"
         android:ellipsize="end"
         android:maxLines="1"
         android:singleLine="true"
         android:layout_marginTop="8dp"
-        android:text="Game Name" />
+        android:text="Game Name"
+        android:lines="1" />
 
 </LinearLayout>

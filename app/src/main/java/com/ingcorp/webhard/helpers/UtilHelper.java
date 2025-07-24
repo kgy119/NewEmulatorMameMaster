@@ -11,7 +11,6 @@ import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.WindowManager;
 
-import com.ingcorp.webhard.BuildConfig;
 import com.ingcorp.webhard.MAME4droid;
 import com.ingcorp.webhard.R;
 import com.ingcorp.webhard.base.Constants;
@@ -499,11 +498,6 @@ public class UtilHelper {
         return Math.round(px / getScreenDensity());
     }
 
-    // 디버그 모드 확인
-    public boolean isDebugMode() {
-        return BuildConfig.DEBUG;
-    }
-
     // 바이트를 읽기 쉬운 형태로 변환
     private String formatBytes(long bytes) {
         if (bytes < 1024) return bytes + " B";
@@ -659,8 +653,6 @@ public class UtilHelper {
      * ROMs 디렉토리의 상태를 로깅하는 디버그 메서드
      */
     public void logRomsDirectoryStatus(String romsPath) {
-        if (!isDebugMode()) return;
-
         try {
 //            Log.d(TAG, "=== ROMs 디렉토리 상태 ===");
 //            Log.d(TAG, "경로: " + romsPath);

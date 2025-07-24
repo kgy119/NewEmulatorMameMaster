@@ -117,6 +117,9 @@ public class MainActivity extends FragmentActivity {
                     // 진행 중이던 다운로드 상태들 정리
                     cleanupDownloadStates(utilHelper);
 
+                    // 첫 업데이트시 이전 롬파일들 정리
+                    utilHelper.cleanupPreviousRomFiles(romsPath);
+
                     Log.d(Constants.LOG_TAG, "앱 시작시 정리 작업 완료");
                 } else {
                     Log.e(Constants.LOG_TAG, "ROMs 경로를 가져올 수 없어 정리 작업을 건너뜀");

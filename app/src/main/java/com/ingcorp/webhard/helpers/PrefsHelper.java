@@ -655,7 +655,13 @@ public class PrefsHelper implements OnSharedPreferenceChangeListener {
 	}
 
 	public boolean isAutofire() {
-		return getSharedPreferences().getBoolean(PREF_AUTOFIRE, false);
+		Object value = getSharedPreferences().getAll().get(PREF_AUTOFIRE);
+		if (value instanceof Boolean) {
+			return (Boolean) value;
+		} else if (value instanceof String) {
+			return Boolean.parseBoolean((String) value);
+		}
+		return false; // 기본값
 	}
 
 	public boolean isInputMacro() {

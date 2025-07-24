@@ -526,7 +526,6 @@ public class GameFragment extends Fragment {
         cleanupExistingTempFile(tempFile);
         showCustomProgressDialog(game.getGameRom());
 
-
         ProgressInterceptor.ProgressListener progressListener = new ProgressInterceptor.ProgressListener() {
             @Override
             public void onProgress(long bytesRead, long contentLength, boolean done) {

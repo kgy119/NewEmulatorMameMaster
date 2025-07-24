@@ -1,5 +1,13 @@
-# Project exclude paths
-/.gradle/
-/app/build/
-/app/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes/
-/build/
+# Raw 폴더의 files.zip 제외
+app/src/main/res/raw/files.zip
+
+# 기타 일반적인 Android 제외 항목들
+*.iml
+.gradle
+/local.properties
+/.idea/
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx

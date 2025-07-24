@@ -12,10 +12,12 @@ import android.util.Log;
 import android.view.WindowManager;
 
 import com.ingcorp.webhard.BuildConfig;
+import com.ingcorp.webhard.MAME4droid;
 import com.ingcorp.webhard.R;
 import com.ingcorp.webhard.base.Constants;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 
 public class UtilHelper {
 
@@ -37,6 +39,13 @@ public class UtilHelper {
     private static UtilHelper instance;
     private static final String TEMP_FILE_EXTENSION = ".tmp";
     private static final String BACKUP_FILE_EXTENSION = ".backup";
+
+    protected MAME4droid mm = null;
+
+    public UtilHelper(MAME4droid value) {
+        mm = value;
+    }
+
 
 
     // 싱글톤 패턴 적용
@@ -763,6 +772,41 @@ public class UtilHelper {
     public void cancelRewardAd() {
         // 클릭 수는 증가시키지 않고 진행 상태만 해제
         setAdInProgress(false);
+    }
+
+    public void cleanupPreviousRomFiles(String romsPath) {
+        try {
+            Log.d(TAG, "ROMs 디렉토리 삭제시작 : " + romsPath);
+            String roms_dir = mm.getMainHelper().getInstallationDIR();
+
+            File fm = new File(roms_dir + File.separator + "saves/"
+                    + "dont-delete-" + mm.getMainHelper().getVersion() + ".bin");
+            if (fm.exists())
+                return;
+
+            // ✅ 앱 업데이트 기존 ROM폴더 삭제
+            File romsDir = new File(romsPath);
+            if (romsDir.exists()) {
+                Log.d(TAG, "ROMs 디렉토리 삭제시도: " + romsPath);
+                deleteRecursive(romsDir);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    protected boolean deleteRecursive(File path) throws FileNotFoundException {
+        if (!path.exists())
+            throw new FileNotFoundException(path.getAbsolutePath());
+        boolean ret = true;
+        if (path.isDirectory()) {
+            for (File f : path.listFiles()) {
+                ret = ret && deleteRecursive(f);
+            }
+
+            Log.d(TAG, "ROMs 디렉토리 삭제: " + ret);
+        }
+        return ret && path.delete();
     }
 
 }

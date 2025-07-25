@@ -47,6 +47,7 @@ package com.ingcorp.webhard;
 import android.app.Activity;
 import android.app.Dialog;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Insets;
@@ -204,10 +205,13 @@ public class MAME4droid extends Activity {
 
 	public void inflateViews() {
 
-		if (getPrefsHelper().getOrientationMode() != 0) {
-			int mode = getMainHelper().getScreenOrientation();
-			this.setRequestedOrientation(mode);
-		}
+//		if (getPrefsHelper().getOrientationMode() != 0) {
+//			int mode = getMainHelper().getScreenOrientation();
+//			this.setRequestedOrientation(mode);
+//		}
+
+		// 항상 가로모드로 강제 설정
+		this.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
 
 		if (getPrefsHelper().isNotchUsed() && Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {
 			getWindow().getAttributes().layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;

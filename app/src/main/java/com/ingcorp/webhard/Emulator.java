@@ -464,7 +464,7 @@ public class Emulator {
 						    text = "Touch mouse is auto enabled!";
 					}
 
-					new WarnWidget.WarnWidgetHelper(mm, text.toString(), 3, Color.YELLOW, true);
+//					new WarnWidget.WarnWidgetHelper(mm, text.toString(), 3, Color.YELLOW, true);
 
 					Log.d("initInput", "virtual device: " + text);
 				}

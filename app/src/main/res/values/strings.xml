@@ -2,11 +2,11 @@
 <resources>
     <string name="app_name">RetroGame Master</string>
     <string name="default_notification_channel_id">mameemulator</string>
-    <string name="admob_id">ca-app-pub-7292860375896480~6828633894</string>
-<!--    <string name="admob_id_banner">ca-app-pub-7292860375896480/2314673812</string>&lt;!&ndash;배너광고 아이디&ndash;&gt;-->
-<!--    <string name="admob_id_full">ca-app-pub-7292860375896480/3053040415</string>&lt;!&ndash; 전면광고 아이디&ndash;&gt;-->
-<!--    <string name="admob_id_reward">ca-app-pub-7292860375896480/2398434297</string>&lt;!&ndash; 리워드 아이디&ndash;&gt;-->
-<!--    <string name="admob_id_native">ca-app-pub-7292860375896480/3011134194</string>&lt;!&ndash; 네이티브 아이디&ndash;&gt;-->
+    <string name="admob_id">ca-app-pub-7292860375896480~5796519874</string>
+<!--    <string name="admob_id_banner">ca-app-pub-7292860375896480/8231111527</string>&lt;!&ndash;배너광고 아이디&ndash;&gt;-->
+<!--    <string name="admob_id_full">ca-app-pub-7292860375896480/2595641464</string>&lt;!&ndash; 전면광고 아이디&ndash;&gt;-->
+<!--    <string name="admob_id_reward">ca-app-pub-7292860375896480/9493753892</string>&lt;!&ndash; 리워드 아이디&ndash;&gt;-->
+<!--    <string name="admob_id_native">ca-app-pub-7292860375896480/9872650778</string>&lt;!&ndash; 네이티브 아이디&ndash;&gt;-->
 
     <string name="admob_id_banner">ca-app-pub-3940256099942544/6300978111</string><!-- 테스트 배너광고 아이디-->
     <string name="admob_id_full">ca-app-pub-3940256099942544/1033173712</string><!-- 테스트 전면광고 아이디-->

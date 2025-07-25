@@ -4,7 +4,7 @@
 	android:layout_width="fill_parent" android:layout_height="fill_parent"
 	xmlns:android="http://schemas.android.com/apk/res/android" android:background="@color/emu_back_color">
 
-	<com.ingcorp.webhard.views.InputView
+	<com.ing.clubdamoim.views.InputView
         android:id="@+id/InputView"
 		android:soundEffectsEnabled="false" android:visibility="visible"
 		android:adjustViewBounds="false" android:scaleType="fitXY"

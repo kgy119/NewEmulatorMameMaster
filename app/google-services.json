@@ -1,38 +1,29 @@
 {
   "project_info": {
-    "project_number": "764438510330",
-    "project_id": "masteroldgame",
-    "storage_bucket": "masteroldgame.appspot.com"
+    "project_number": "702260005751",
+    "project_id": "shootingmame",
+    "storage_bucket": "shootingmame.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:764438510330:android:68e06b0e214e22f785e743",
+        "mobilesdk_app_id": "1:702260005751:android:3c92e5b258f6e5c300ef72",
         "android_client_info": {
-          "package_name": "com.ingcorp.webhard"
+          "package_name": "com.ing.clubdamoim"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "764438510330-f59e9p17026es7ol6rr5l7fa48b8n0ua.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyC5F6efPBGzvtuk46iT2C5J-omLzn4j6lo"
+          "current_key": "AIzaSyBY_OQDzzVSh9J7JH1bmmi0LtO6Zksio_4"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "764438510330-f59e9p17026es7ol6rr5l7fa48b8n0ua.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
+          "other_platform_oauth_client": []
         }
-      }
+      },
+      "admob_app_id": "ca-app-pub-7292860375896480~5796519874"
     }
   ],
   "configuration_version": "1"

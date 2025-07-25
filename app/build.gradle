@@ -15,11 +15,11 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.ingcorp.webhard"
+        applicationId "com.ing.clubdamoim"
         minSdkVersion 29
         targetSdkVersion 35
-        versionCode 23
-        versionName '2.23'
+        versionCode 21
+        versionName '2.1'
 
         ndk {
             moduleName "mame4droid-jni"
@@ -35,7 +35,7 @@ android {
     }
 
     base {
-        archivesName = "RetroMaster 2025-" + defaultConfig.versionName
+        archivesName = "Retrobit 2025-" + defaultConfig.versionName
     }
 
     bundle {
@@ -83,7 +83,7 @@ android {
         }
     }
 
-    namespace 'com.ingcorp.webhard'
+    namespace 'com.ing.clubdamoim'
 }
 
 

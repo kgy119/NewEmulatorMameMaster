@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">RetroGame Master</string>
-    <string name="default_notification_channel_id">mameemulator</string>
+    <string name="app_name">Retrobit</string>
+    <string name="default_notification_channel_id">retrobitchannel</string>
     <string name="admob_id">ca-app-pub-7292860375896480~5796519874</string>
 <!--    <string name="admob_id_banner">ca-app-pub-7292860375896480/8231111527</string>&lt;!&ndash;배너광고 아이디&ndash;&gt;-->
 <!--    <string name="admob_id_full">ca-app-pub-7292860375896480/2595641464</string>&lt;!&ndash; 전면광고 아이디&ndash;&gt;-->

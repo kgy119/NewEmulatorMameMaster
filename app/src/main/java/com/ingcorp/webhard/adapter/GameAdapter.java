@@ -22,8 +22,8 @@ import com.google.android.gms.ads.nativead.NativeAdView;
 import com.ingcorp.webhard.R;
 import com.ingcorp.webhard.base.Constants;
 import com.ingcorp.webhard.database.entity.Game;
-import com.ingcorp.webhard.manager.AdMobManager;
 import com.ingcorp.webhard.helpers.UtilHelper;
+import com.ingcorp.webhard.manager.AdMobManager;
 import com.ingcorp.webhard.model.BaseItem;
 import com.ingcorp.webhard.model.GameItem;
 
@@ -31,7 +31,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class GameAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
-    private static final String TAG = "GameAdapter";
+    private static final String TAG = Constants.LOG_TAG;
 
     private List<BaseItem> itemList;
     private Context context;
@@ -116,7 +116,6 @@ public class GameAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         public void bind(Game game) {
             if (game == null) return;
 
-            // ✅ game.getGameName() 대신 game.getGameRom() 사용
             gameNameText.setText(game.getGameRom());
             loadGameImage(game);
 
@@ -132,11 +131,10 @@ public class GameAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 utilHelper.showConfirmDialog(
                         (android.app.Activity) context,
                         "Launch Game",
-                        "Do you want to start " + game.getGameRom() + "?", // ✅ 여기도 수정
+                        "Do you want to start " + game.getGameRom() + "?",
                         () -> {
-                            if (onGameClickListener != null) {
-                                onGameClickListener.onGameClick(game);
-                            }
+                            // ✅ 전면광고 로직이 있는 메서드 호출
+                            proceedWithGameLaunch(game);
                         }
                 );
             });

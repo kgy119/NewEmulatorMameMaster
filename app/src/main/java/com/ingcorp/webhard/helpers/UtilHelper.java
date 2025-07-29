@@ -121,7 +121,7 @@ public class UtilHelper {
             boolean hasInternet = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
             boolean isValidated = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);
 
-            Log.d(TAG, "네트워크 상태 - 인터넷: " + hasInternet + ", 검증됨: " + isValidated);
+//            Log.d(TAG, "네트워크 상태 - 인터넷: " + hasInternet + ", 검증됨: " + isValidated);
 
             return hasInternet && isValidated;
         } else {
@@ -712,7 +712,7 @@ public class UtilHelper {
         // 리워드 광고 주기 가져오기
         int adRewardCoinCnt = getAdFullCoinCount();
 
-        Log.e(Constants.LOG_TAG, "코인클릭수 : "+prefs.getInt(BTN_COIN_CLICK_COUNT_KEY, 0)+"  리워드 광고 주기 : " + adRewardCoinCnt);
+//        Log.e(Constants.LOG_TAG, "코인클릭수 : "+prefs.getInt(BTN_COIN_CLICK_COUNT_KEY, 0)+"  리워드 광고 주기 : " + adRewardCoinCnt);
 
         // 주기로 나누어서 나머지가 0인지 확인 (광고 노출 순서인지)
         return ((currentClickCount + 2) % adRewardCoinCnt) == 0;
@@ -736,7 +736,7 @@ public class UtilHelper {
         // 리워드 광고 주기 가져오기
         int adRewardCoinCnt = getAdFullCoinCount();
 
-        Log.e(Constants.LOG_TAG, "코인클릭수 : "+prefs.getInt(BTN_COIN_CLICK_COUNT_KEY, 0)+"  리워드 광고 주기 : " + adRewardCoinCnt);
+//        Log.e(Constants.LOG_TAG, "코인클릭수 : "+prefs.getInt(BTN_COIN_CLICK_COUNT_KEY, 0)+"  리워드 광고 주기 : " + adRewardCoinCnt);
 
         // 주기로 나누어서 나머지가 0인지 확인 (광고 노출 순서인지)
         return ((currentClickCount + 1) % adRewardCoinCnt) == 0;

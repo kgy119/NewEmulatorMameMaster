@@ -173,11 +173,11 @@ public class AdMobManager {
     /// 전면광고 로드
     public void loadInterstitialAd(OnInterstitialAdLoadedListener listener) {
         if (isLoadingInterstitial) {
-            Log.d(TAG, "전면광고가 이미 로딩 중입니다");
+//            Log.d(TAG, "전면광고가 이미 로딩 중입니다");
             return;
         }
 
-        Log.d(TAG, "전면광고 로드 시작");
+//        Log.d(TAG, "전면광고 로드 시작");
         isLoadingInterstitial = true;
 
         try {
@@ -190,13 +190,13 @@ public class AdMobManager {
                         public void onAdLoaded(@NonNull InterstitialAd interstitialAd) {
                             mInterstitialAd = interstitialAd;
                             isLoadingInterstitial = false;
-                            Log.d(TAG, "전면광고 로드 성공");
+//                            Log.d(TAG, "전면광고 로드 성공");
 
                             // 전면광고 콜백 설정
                             mInterstitialAd.setFullScreenContentCallback(new FullScreenContentCallback() {
                                 @Override
                                 public void onAdDismissedFullScreenContent() {
-                                    Log.d(TAG, "전면광고 닫힘");
+//                                    Log.d(TAG, "전면광고 닫힘");
                                     mInterstitialAd = null;
                                     if (listener != null) {
                                         listener.onAdClosed();
@@ -216,7 +216,7 @@ public class AdMobManager {
 
                                 @Override
                                 public void onAdShowedFullScreenContent() {
-                                    Log.d(TAG, "전면광고 표시됨");
+//                                    Log.d(TAG, "전면광고 표시됨");
                                     if (listener != null) {
                                         listener.onAdShown();
                                     }
@@ -258,13 +258,13 @@ public class AdMobManager {
     /// 전면광고 표시
     public void showInterstitialAd(Context activityContext, OnInterstitialAdShownListener listener) {
         if (mInterstitialAd != null) {
-            Log.d(TAG, "전면광고 표시");
+//            Log.d(TAG, "전면광고 표시");
 
             // 표시 전 콜백 설정 업데이트
             mInterstitialAd.setFullScreenContentCallback(new FullScreenContentCallback() {
                 @Override
                 public void onAdDismissedFullScreenContent() {
-                    Log.d(TAG, "전면광고 닫힘");
+//                    Log.d(TAG, "전면광고 닫힘");
                     mInterstitialAd = null;
                     if (listener != null) {
                         listener.onAdClosed();
@@ -333,11 +333,11 @@ public class AdMobManager {
 
     /// 네이티브 광고 로드
     public void loadNativeAd(OnNativeAdLoadedListener listener) {
-        Log.d(TAG, "네이티브 광고 로드 시작");
+//        Log.d(TAG, "네이티브 광고 로드 시작");
 
         try {
             String adUnitId = context.getString(R.string.admob_id_native);
-            Log.d(TAG, "광고 단위 ID: " + adUnitId);
+//            Log.d(TAG, "광고 단위 ID: " + adUnitId);
 
             AdRequest adRequest = new AdRequest.Builder().build();
 
@@ -345,10 +345,10 @@ public class AdMobManager {
                     .forNativeAd(new NativeAd.OnNativeAdLoadedListener() {
                         @Override
                         public void onNativeAdLoaded(NativeAd nativeAd) {
-                            Log.d(TAG, "네이티브 광고 로드 성공!");
-                            Log.d(TAG, "광고 제목: " + (nativeAd.getHeadline() != null ? nativeAd.getHeadline() : "없음"));
-                            Log.d(TAG, "광고주: " + (nativeAd.getAdvertiser() != null ? nativeAd.getAdvertiser() : "없음"));
-                            Log.d(TAG, "미디어 콘텐츠: " + (nativeAd.getMediaContent() != null ? "있음" : "없음"));
+//                            Log.d(TAG, "네이티브 광고 로드 성공!");
+//                            Log.d(TAG, "광고 제목: " + (nativeAd.getHeadline() != null ? nativeAd.getHeadline() : "없음"));
+//                            Log.d(TAG, "광고주: " + (nativeAd.getAdvertiser() != null ? nativeAd.getAdvertiser() : "없음"));
+//                            Log.d(TAG, "미디어 콘텐츠: " + (nativeAd.getMediaContent() != null ? "있음" : "없음"));
 
                             if (listener != null) {
                                 listener.onAdLoaded(nativeAd);
@@ -378,12 +378,12 @@ public class AdMobManager {
 
                         @Override
                         public void onAdOpened() {
-                            Log.d(TAG, "광고 열림");
+//                            Log.d(TAG, "광고 열림");
                         }
 
                         @Override
                         public void onAdClosed() {
-                            Log.d(TAG, "광고 닫힘");
+//                            Log.d(TAG, "광고 닫힘");
                         }
                     })
                     .withNativeAdOptions(new NativeAdOptions.Builder()

@@ -216,7 +216,7 @@ public class AdMobManager {
 
                                 @Override
                                 public void onAdShowedFullScreenContent() {
-//                                    Log.d(TAG, "전면광고 표시됨");
+                                    Log.d(TAG, "전면광고 표시됨");
                                     if (listener != null) {
                                         listener.onAdShown();
                                     }
@@ -258,13 +258,13 @@ public class AdMobManager {
     /// 전면광고 표시
     public void showInterstitialAd(Context activityContext, OnInterstitialAdShownListener listener) {
         if (mInterstitialAd != null) {
-//            Log.d(TAG, "전면광고 표시");
+            Log.d(TAG, "전면광고 표시");
 
             // 표시 전 콜백 설정 업데이트
             mInterstitialAd.setFullScreenContentCallback(new FullScreenContentCallback() {
                 @Override
                 public void onAdDismissedFullScreenContent() {
-//                    Log.d(TAG, "전면광고 닫힘");
+                    Log.d(TAG, "전면광고 닫힘");
                     mInterstitialAd = null;
                     if (listener != null) {
                         listener.onAdClosed();

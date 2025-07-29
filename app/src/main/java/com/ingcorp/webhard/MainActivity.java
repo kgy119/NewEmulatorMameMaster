@@ -52,6 +52,8 @@ public class MainActivity extends FragmentActivity {
     private static final long NOTIFICATION_REQUEST_INTERVAL = 17 * 24 * 60 * 60 * 1000L; // 17일 (밀리초)
     private static final int NOTIFICATION_PERMISSION_REQUEST_CODE = 1001;
 
+    private boolean doubleBackToExitPressedOnce = false;
+    private android.os.Handler backPressHandler = new android.os.Handler();
 
 
     @Override
@@ -615,6 +617,25 @@ public class MainActivity extends FragmentActivity {
         super.onResume();
     }
 
+    // onBackPressed() 메서드 추가 (기존 onDestroy() 메서드 위에 추가)
+    @Override
+    public void onBackPressed() {
+        if (doubleBackToExitPressedOnce) {
+            super.onBackPressed();
+            return;
+        }
+
+        this.doubleBackToExitPressedOnce = true;
+        android.widget.Toast.makeText(this, "Press back again to exit", android.widget.Toast.LENGTH_SHORT).show();
+
+        backPressHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                doubleBackToExitPressedOnce = false;
+            }
+        }, 2000); // 2초 후에 다시 false로 설정
+    }
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
@@ -625,4 +646,6 @@ public class MainActivity extends FragmentActivity {
             adMobManager.destroyBannerAd();
         }
     }
+
+
 }

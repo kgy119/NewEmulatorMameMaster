@@ -9,6 +9,8 @@ import android.content.res.Configuration;
 import android.graphics.Insets;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.MotionEvent;
@@ -257,7 +259,13 @@ public class MAME4droid extends Activity {
 
 		overridePendingTransition(0, 0);
 
-		AdMobManager.getInstance(this).loadRewardedAd(null);
+		// 화면 방향 변경 완료 후 광고 로드
+		new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+			@Override
+			public void run() {
+				AdMobManager.getInstance(MAME4droid.this).loadRewardedAd(null);
+			}
+		}, 500);
 	}
 
 

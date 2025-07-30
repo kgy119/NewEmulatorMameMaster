@@ -68,7 +68,7 @@
 		<com.ingcorp.webhard.prefs.CheckBoxPrefWithWarn
             android:key="SKIP_GAMEINFO"
 			android:title="Skip game info " android:summary="Forces to skip displaying the system info screen"
-			android:defaultValue="false" />
+			android:defaultValue="true" />
 
 		<CheckBoxPreference android:key="PREF_ZOOM_TO_WINDOW"
 			android:title="Zoom to window" android:summary="Automatically zooms the emulated display so that portrait and landscape games use the entire device window. Disable if you use artwork to zoom into the screen area in MAME video options using fixed orientation and wide resolutions"

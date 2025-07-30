@@ -784,8 +784,20 @@ galaxy sde	   --> 2560x1600 16:10
 
     public void showSettings() {
         if (!Emulator.isEmulating()) return;
-        Intent i = new Intent(mm, UserPreferences.class);
-        mm.startActivityForResult(i, MainHelper.SUBACTIVITY_USER_PREFS);
+
+        try {
+            // 설정 타입 호환성 체크
+            mm.getPrefsHelper().validateAndFixPreferenceTypes();
+
+            Intent i = new Intent(mm, UserPreferences.class);
+            mm.startActivityForResult(i, MainHelper.SUBACTIVITY_USER_PREFS);
+        } catch (Exception e) {
+            Log.e("MainHelper", "설정 호환성 문제", e);
+
+            // 간단한 재시도
+            Intent i = new Intent(mm, UserPreferences.class);
+            mm.startActivityForResult(i, MainHelper.SUBACTIVITY_USER_PREFS);
+        }
     }
 
     public void showHelp() {

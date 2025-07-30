@@ -76,10 +76,10 @@
 			</intent-filter>
 		</activity>
 
-		<activity android:name="com.ingcorp.webhard.prefs.UserPreferences" android:theme="@style/Theme.MAME4droid.TitleBar" android:label="MAME4droid Settings"/>
-		<activity android:name="com.ingcorp.webhard.WebHelpActivity" android:launchMode="singleTop" android:theme="@style/Theme.MAME4droid.TitleBar" android:label="MAME4droid Help"/>
-		<activity android:name="com.ingcorp.webhard.prefs.DefineKeys" android:theme="@style/Theme.MAME4droid.TitleBar" android:label="MAME4droid Define Keys"/>
-		<activity android:name="com.ingcorp.webhard.prefs.ListKeys" android:theme="@style/Theme.MAME4droid.TitleBar" android:label="MAME4droid Player Keys"/>
+		<activity android:name="com.ingcorp.webhard.prefs.UserPreferences" android:theme="@style/Theme.MAME4droid.TitleBar" android:label="RetroGame Settings"/>
+		<activity android:name="com.ingcorp.webhard.WebHelpActivity" android:launchMode="singleTop" android:theme="@style/Theme.MAME4droid.TitleBar" android:label="RetroGame Help"/>
+		<activity android:name="com.ingcorp.webhard.prefs.DefineKeys" android:theme="@style/Theme.MAME4droid.TitleBar" android:label="RetroGame Define Keys"/>
+		<activity android:name="com.ingcorp.webhard.prefs.ListKeys" android:theme="@style/Theme.MAME4droid.TitleBar" android:label="RetroGame Player Keys"/>
 		<activity android:name="com.ingcorp.webhard.prefs.KeySelect" android:label="Select Key" android:theme="@android:style/Theme.Dialog"/>
 
 		<service

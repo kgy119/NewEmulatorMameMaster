@@ -24,6 +24,7 @@ import android.view.animation.ScaleAnimation;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.ingcorp.webhard.helpers.PrefsHelper;
 import com.ingcorp.webhard.helpers.UtilHelper;
 import com.ingcorp.webhard.manager.GameListManager;
 import com.ingcorp.webhard.model.VersionResponse;
@@ -52,6 +53,9 @@ public class SplashActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // 설정 타입 호환성 체크 및 수정
+        PrefsHelper.validateAndFixPreferenceTypes(this);
 
         // 레이아웃 설정
         setContentView(R.layout.activity_splash);

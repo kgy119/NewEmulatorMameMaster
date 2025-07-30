@@ -18,8 +18,8 @@ android {
         applicationId "com.ingcorp.webhard"
         minSdkVersion 29
         targetSdkVersion 35
-        versionCode 25
-        versionName '2.25'
+        versionCode 26
+        versionName '2.26'
 
         ndk {
             moduleName "mame4droid-jni"

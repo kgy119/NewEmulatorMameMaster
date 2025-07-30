@@ -48,6 +48,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.preference.PreferenceManager;
+import android.util.Log;
 
 import com.ingcorp.webhard.Emulator;
 import com.ingcorp.webhard.MAME4droid;
@@ -336,7 +337,7 @@ public class PrefsHelper implements OnSharedPreferenceChangeListener {
 	}
 
 	public boolean isSkipGameInfo() {
-		return getSharedPreferences().getBoolean(SKIP_GAMEINFO, false);
+		return getSharedPreferences().getBoolean(SKIP_GAMEINFO, true);
 	}
 
 	public boolean isDisabledDRC() {
@@ -709,6 +710,149 @@ public class PrefsHelper implements OnSharedPreferenceChangeListener {
 		return v;
 	}
 
+	// 타입 안전 Boolean 값 가져오기
+	private boolean getSafeBooleanPreference(String key, boolean defaultValue) {
+		try {
+			Object value = getSharedPreferences().getAll().get(key);
+			if (value instanceof Boolean) {
+				return (Boolean) value;
+			} else if (value instanceof String) {
+				String stringValue = (String) value;
+				// "0" = false, "1" 또는 다른 값 = true로 해석
+				if ("0".equals(stringValue) || "false".equalsIgnoreCase(stringValue)) {
+					return false;
+				} else if ("1".equals(stringValue) || "true".equalsIgnoreCase(stringValue)) {
+					return true;
+				}
+				// 숫자인 경우 0이면 false, 0이 아니면 true
+				try {
+					int intValue = Integer.parseInt(stringValue);
+					return intValue != 0;
+				} catch (NumberFormatException e) {
+					// 파싱 실패시 기본값 반환
+				}
+			} else if (value instanceof Integer) {
+				return ((Integer) value) != 0;
+			}
+		} catch (Exception e) {
+			Log.w("PrefsHelper", "설정 값 변환 오류: " + key, e);
+		}
+		return defaultValue;
+	}
+
+	// 타입 안전 String 값 가져오기
+	private String getSafeStringPreference(String key, String defaultValue) {
+		try {
+			Object value = getSharedPreferences().getAll().get(key);
+			if (value instanceof String) {
+				return (String) value;
+			} else if (value instanceof Boolean) {
+				// Boolean을 String으로 변환
+				return ((Boolean) value) ? "1" : "0";
+			} else if (value instanceof Integer) {
+				return String.valueOf((Integer) value);
+			} else if (value instanceof Float) {
+				return String.valueOf((Float) value);
+			}
+		} catch (Exception e) {
+			Log.w("PrefsHelper", "설정 값 변환 오류: " + key, e);
+		}
+		return defaultValue;
+	}
+
+	// 타입 안전 Integer 값 가져오기
+	private int getSafeIntPreference(String key, int defaultValue) {
+		try {
+			Object value = getSharedPreferences().getAll().get(key);
+			if (value instanceof Integer) {
+				return (Integer) value;
+			} else if (value instanceof String) {
+				String stringValue = (String) value;
+				try {
+					return Integer.parseInt(stringValue);
+				} catch (NumberFormatException e) {
+					// 파싱 실패시 기본값 반환
+				}
+			} else if (value instanceof Boolean) {
+				return ((Boolean) value) ? 1 : 0;
+			}
+		} catch (Exception e) {
+			Log.w("PrefsHelper", "설정 값 변환 오류: " + key, e);
+		}
+		return defaultValue;
+	}
+
+	// 설정 타입 호환성 검사 및 수정
+	public void validateAndFixPreferenceTypes() {
+		try {
+			SharedPreferences prefs = getSharedPreferences();
+			SharedPreferences.Editor editor = prefs.edit();
+			boolean needsCommit = false;
+
+			// 타입 변환이 필요한 설정들 목록
+			String[][] typeConversions = {
+					// {키, 이전타입, 새타입, 기본값}
+					{"PREF_AUTOFIRE", "string", "boolean", "false"},
+					{"PREF_GLOBAL_CHEAT", "string", "boolean", "false"},
+					{"PREF_GLOBAL_HISCORE", "string", "boolean", "false"},
+					{"PREF_BEAM2X", "string", "boolean", "true"},
+					{"PREF_ANTIALIAS", "string", "boolean", "true"},
+					{"PREF_FLICKER", "string", "boolean", "false"},
+					{"PREF_INPUT_FAKE_ID", "string", "boolean", "false"},
+					{"PREF_MOUSE", "string", "boolean", "false"},
+					{"PREF_RENDER_RGB", "string", "boolean", "false"},
+					{"PREF_THREADED_VIDEO", "string", "boolean", "true"},
+					{"PREF_DOUBLE_BUFFER", "string", "boolean", "true"},
+					{"PREF_FORCE_ALTGLPATH", "string", "boolean", "false"},
+					// 필요에 따라 더 추가...
+			};
+
+			for (String[] conversion : typeConversions) {
+				String key = conversion[0];
+				String newType = conversion[2];
+				String defaultValue = conversion[3];
+
+				if (prefs.contains(key)) {
+					Object currentValue = prefs.getAll().get(key);
+
+					if ("boolean".equals(newType)) {
+						// Boolean 타입으로 변환 필요
+						if (!(currentValue instanceof Boolean)) {
+							boolean convertedValue = getSafeBooleanPreference(key, Boolean.parseBoolean(defaultValue));
+							editor.putBoolean(key, convertedValue);
+							needsCommit = true;
+							Log.d("PrefsHelper", "설정 타입 변환: " + key + " -> Boolean: " + convertedValue);
+						}
+					} else if ("string".equals(newType)) {
+						// String 타입으로 변환 필요
+						if (!(currentValue instanceof String)) {
+							String convertedValue = getSafeStringPreference(key, defaultValue);
+							editor.putString(key, convertedValue);
+							needsCommit = true;
+							Log.d("PrefsHelper", "설정 타입 변환: " + key + " -> String: " + convertedValue);
+						}
+					} else if ("integer".equals(newType)) {
+						// Integer 타입으로 변환 필요
+						if (!(currentValue instanceof Integer)) {
+							int convertedValue = getSafeIntPreference(key, Integer.parseInt(defaultValue));
+							editor.putInt(key, convertedValue);
+							needsCommit = true;
+							Log.d("PrefsHelper", "설정 타입 변환: " + key + " -> Integer: " + convertedValue);
+						}
+					}
+				}
+			}
+
+			if (needsCommit) {
+				editor.apply();
+				Log.i("PrefsHelper", "설정 타입 호환성 수정 완료");
+			}
+
+		} catch (Exception e) {
+			Log.e("PrefsHelper", "설정 타입 검사 중 오류", e);
+		}
+	}
+
 	public boolean isScaleBeyondBoundaries() {
 		return getSharedPreferences().getBoolean(PREF_GLOBAL_SCALE_BEYOND, true);
 	}
@@ -772,6 +916,80 @@ public class PrefsHelper implements OnSharedPreferenceChangeListener {
 	public boolean isScrapingResize() {
 		return getSharedPreferences().getBoolean(PREF_SCRAPE_RESIZE, true);
 	}
+	// PrefsHelper.java에 추가
+	public static void validateAndFixPreferenceTypes(Context context) {
+		try {
+			SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+			SharedPreferences.Editor editor = prefs.edit();
+			boolean needsCommit = false;
 
+			// 타입 변환이 필요한 설정들
+			String[][] typeConversions = {
+					{"PREF_AUTOFIRE", "boolean", "false"},
+					{"PREF_GLOBAL_CHEAT", "boolean", "false"},
+					{"PREF_GLOBAL_HISCORE", "boolean", "false"},
+					{"PREF_BEAM2X", "boolean", "true"},
+					{"PREF_ANTIALIAS", "boolean", "true"},
+					{"PREF_FLICKER", "boolean", "false"},
+					{"PREF_INPUT_FAKE_ID", "boolean", "false"},
+					{"PREF_MOUSE", "boolean", "false"},
+					{"PREF_RENDER_RGB", "boolean", "false"},
+					{"PREF_THREADED_VIDEO", "boolean", "true"},
+					{"PREF_DOUBLE_BUFFER", "boolean", "true"},
+					{"PREF_FORCE_ALTGLPATH", "boolean", "false"}
+			};
+
+			for (String[] conversion : typeConversions) {
+				String key = conversion[0];
+				String newType = conversion[1];
+				String defaultValue = conversion[2];
+
+				if (prefs.contains(key)) {
+					Object currentValue = prefs.getAll().get(key);
+
+					if ("boolean".equals(newType) && !(currentValue instanceof Boolean)) {
+						boolean convertedValue = safeBooleanConvert(currentValue, Boolean.parseBoolean(defaultValue));
+						editor.putBoolean(key, convertedValue);
+						needsCommit = true;
+						Log.d("PrefsHelper", "설정 타입 변환: " + key + " -> Boolean: " + convertedValue);
+					}
+				}
+			}
+
+			if (needsCommit) {
+				editor.apply();
+				Log.i("PrefsHelper", "설정 타입 호환성 수정 완료");
+			}
+
+		} catch (Exception e) {
+			Log.e("PrefsHelper", "설정 타입 검사 중 오류", e);
+		}
+	}
+
+	private static boolean safeBooleanConvert(Object value, boolean defaultValue) {
+		try {
+			if (value instanceof Boolean) {
+				return (Boolean) value;
+			} else if (value instanceof String) {
+				String stringValue = (String) value;
+				if ("0".equals(stringValue) || "false".equalsIgnoreCase(stringValue)) {
+					return false;
+				} else if ("1".equals(stringValue) || "true".equalsIgnoreCase(stringValue)) {
+					return true;
+				}
+				try {
+					int intValue = Integer.parseInt(stringValue);
+					return intValue != 0;
+				} catch (NumberFormatException e) {
+					return defaultValue;
+				}
+			} else if (value instanceof Integer) {
+				return ((Integer) value) != 0;
+			}
+		} catch (Exception e) {
+			// 무시
+		}
+		return defaultValue;
+	}
 
 }

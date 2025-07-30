@@ -54,6 +54,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.content.res.Configuration;
+import android.os.Build;
 import android.os.Bundle;
 import android.preference.EditTextPreference;
 import android.preference.ListPreference;
@@ -61,6 +62,10 @@ import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceManager;
 import android.preference.PreferenceScreen;
+import android.view.View;
+import android.view.WindowInsets;
+import android.view.WindowInsetsController;
+import android.view.WindowManager;
 
 import com.ingcorp.webhard.Emulator;
 import com.ingcorp.webhard.R;
@@ -108,6 +113,9 @@ public class UserPreferences extends PreferenceActivity implements OnSharedPrefe
 	protected void onCreate(Bundle savedInstanceState) {
 
 		super.onCreate(savedInstanceState);
+
+		// ★★★ setContentView 후 전체화면 설정 ★★★
+		enableFullScreen();
 
 		addPreferencesFromResource(R.xml.userpreferences);
 
@@ -489,4 +497,60 @@ public class UserPreferences extends PreferenceActivity implements OnSharedPrefe
 			lp.setEntries(cs);
 			lp.setEntryValues(csv);
 		}
+
+	private void enableFullScreen() {
+		// Window와 DecorView가 준비되었는지 확인
+		if (getWindow() == null || getWindow().getDecorView() == null) {
+			return;
+		}
+
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+			// API 30 이상 (Android 11+) - 상단바와 네비게이션 바 모두 숨김
+			try {
+				getWindow().setDecorFitsSystemWindows(false);
+				if (getWindow().getInsetsController() != null) {
+					getWindow().getInsetsController().hide(
+							WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
+					getWindow().getInsetsController().setSystemBarsBehavior(
+							WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+				}
+			} catch (Exception e) {
+				// API 30 방식이 실패하면 구버전 방식으로 fallback
+				enableFullScreenLegacy();
+			}
+		} else {
+			enableFullScreenLegacy();
+		}
+
+		// API 28 이상에서 디스플레이 컷아웃 모드 설정
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+			try {
+				WindowManager.LayoutParams layoutParams = getWindow().getAttributes();
+				layoutParams.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+				getWindow().setAttributes(layoutParams);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	// ★★★ 구버전 전체화면 모드 ★★★
+	private void enableFullScreenLegacy() {
+		// API 19-29 (구버전 방식) - 상단바와 네비게이션 바 모두 숨김
+		getWindow().getDecorView().setSystemUiVisibility(
+				View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+						| View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+						| View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+						| View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+						| View.SYSTEM_UI_FLAG_FULLSCREEN
+						| View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+	}
+
+	@Override
+	public void onWindowFocusChanged(boolean hasFocus) {
+		super.onWindowFocusChanged(hasFocus);
+		if (hasFocus) {
+			enableFullScreen();
+		}
+	}
 }

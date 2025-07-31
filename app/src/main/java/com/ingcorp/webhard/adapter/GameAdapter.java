@@ -338,7 +338,7 @@ public class GameAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
         private void showDefaultAd() {
             if (adHeadline != null) {
-                adHeadline.setText("광고");
+                adHeadline.setText("");
             }
         }
     }
